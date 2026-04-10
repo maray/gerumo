@@ -26,7 +26,13 @@ TELESCOPES_ALIAS = {
         "LST_LSTCam":    "LST_LSTCam", 
         "MST_FlashCam":  "MST_FlashCam",
         "SST1M_DigiCam": "SST1M_DigiCam"
-    } 
+    },
+    "DL1": {
+        "LST_LSTCam":    "LST",
+        #"MST_NectarCam": "MST",    #Falta este tipo de cámara. Arreglar después
+        "MST_FlashCam":  "MST",
+        "SST1M_DigiCam": "SST"
+    }
 }
 
 # Telescope array informatin

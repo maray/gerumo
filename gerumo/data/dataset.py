@@ -17,6 +17,7 @@ import tables
 import logging
 import pandas as pd
 import numpy as np
+#import pdb
 
 from . import TARGETS, TELESCOPES, TELESCOPES_ALIAS
 
@@ -30,7 +31,8 @@ __all__ = [
 # Table names and atributes
 _events_table = {
     "ML1": "Event_Info",
-    "ML2": "Events"
+    "ML2": "Events",
+    "DL1": "event"
 }
 
 _event_attributes = {
@@ -51,6 +53,15 @@ _event_attributes = {
         "az": "az",
         "h_first_int": "h_first_int",
         "mc_energy": "mc_energy",
+    },
+    "DL1": {
+        "event_id": "event_id",
+        "core_x": "true_core_x",
+        "core_y": "true_core_y",
+        "alt": "true_alt",
+        "az": "true_az",
+        "h_first_int": "true_h_first_int",
+        "mc_energy": "true_energy",
     }
 }
 
@@ -73,6 +84,13 @@ _array_attributes = {
         "x": "x",
         "y": "y",
         "z": "z",
+    },
+    "DL1": {
+        "type": "type",
+        "telescope_id": "tel_id",
+        "x": "pos_x",
+        "y": "pos_y",
+        "z": "pos_z",
     }
 }
 
@@ -120,7 +138,7 @@ _telescope_fieldnames = [
 ]
 
 
-def extract_data(hdf5_filepath, version='ML2'):
+def extract_data(hdf5_filepath, n_file, version='ML2'):
     """Extract data from one hdf5 file."""
 
     hdf5_file = tables.open_file(hdf5_filepath, "r")
@@ -141,7 +159,12 @@ def extract_data(hdf5_filepath, version='ML2'):
     ## has 3 indices starting from 0, for each telescope type. 
     ## 'real_telescopes_id' translate events indices ('activation_telescope_id') to array ids ('telescope_id').
 
-    for telescope in hdf5_file.root[_array_info_table[version]]:
+    if version == "DL1":
+        telescope_list = hdf5_file.root.configuration.instrument.subarray.layout
+    else:
+        telescope_list = hdf5_file.root[_array_info_table[version]]
+
+    for telescope in telescope_list:
         telescope_type = telescope[_array_attributes[version]["type"]]
         telescope_type = telescope_type.decode("utf-8") if isinstance(telescope_type, bytes) else telescope_type
         telescope_id = telescope[_array_attributes[version]["telescope_id"]]
@@ -160,9 +183,17 @@ def extract_data(hdf5_filepath, version='ML2'):
 
     # add uuid to avoid duplicated event numbers 
     try:
-        for i, event in enumerate(hdf5_file.root[_events_table[version]]):
+        if version == "DL1":
+            event_list = hdf5_file.root.simulation.event.subarray.shower
+        else:
+            event_list = hdf5_file.root[_events_table[version]]
+        for i, event in enumerate(event_list):
+            #pdb.set_trace()
             # Event data
-            event_unique_id = uuid.uuid4().hex[:20]
+            if version == "DL1":
+                event_unique_id = str(event["obs_id"]) + "_" + str(event["event_id"]) + "_" + str(n_file)
+            else:
+                event_unique_id = uuid.uuid4().hex[:20]
             event_data = dict(
                 event_unique_id=event_unique_id,
                 event_id=event[_event_attributes[version]["event_id"]],
@@ -179,37 +210,60 @@ def extract_data(hdf5_filepath, version='ML2'):
 
             # Observations data
             ## For each telescope type
-            for telescope_type in TELESCOPES:
-                telescope_type_alias = TELESCOPES_ALIAS[version][telescope_type]
-                telescope_indices = f"{telescope_type_alias}_indices"
-                telescopes = event[telescope_indices]
-                # number of activated telescopes
-                if version == "ML2":
-                    telescope_multiplicity = f"{telescope_type_alias}_multiplicity"
-                    multiplicity = event[telescope_multiplicity]
-                else:
-                    multiplicity = np.sum(telescopes != 0)
+            if version != "DL1":
+                for telescope_type in TELESCOPES:
+                    telescope_type_alias = TELESCOPES_ALIAS[version][telescope_type]
+                    telescope_indices = f"{telescope_type_alias}_indices"
+                    telescopes = event[telescope_indices]
+                    # number of activated telescopes
+                    if version == "ML2":
+                        telescope_multiplicity = f"{telescope_type_alias}_multiplicity"
+                        multiplicity = event[telescope_multiplicity]
+                    else:
+                        multiplicity = np.sum(telescopes != 0)
 
-                if multiplicity == 0:  # No telescope of this type were activated
-                    continue
+                    if multiplicity == 0:  # No telescope of this type were activated
+                        continue
 
-                # Select activated telescopes
-                activation_mask = telescopes != 0
-                activated_telescopes = np.arange(len(telescopes))[activation_mask]
-                observation_indices = telescopes[activation_mask]
+                    # Select activated telescopes
+                    activation_mask = telescopes != 0
+                    activated_telescopes = np.arange(len(telescopes))[activation_mask]
+                    observation_indices = telescopes[activation_mask]
 
-                ## For each activated telescope
-                for activate_telescope, observation_indice in zip(activated_telescopes, observation_indices):
-                    # Telescope Data
-                    real_telescope_id = real_telescopes_id[telescope_type_alias][activate_telescope]
+                    ## For each activated telescope
+                    for activate_telescope, observation_indice in zip(activated_telescopes, observation_indices):
+                        # Telescope Data
+                        real_telescope_id = real_telescopes_id[telescope_type_alias][activate_telescope]
+                        telescope_data = dict(
+                            telescope_id=real_telescope_id,
+                            event_unique_id=event_unique_id,
+                            type=telescope_type,
+                            x=array_data[telescope_type_alias][real_telescope_id]["x"],
+                            y=array_data[telescope_type_alias][real_telescope_id]["y"],
+                            z=array_data[telescope_type_alias][real_telescope_id]["z"],
+                            observation_indice=observation_indice
+                        )
+                        telescopes_data.append(telescope_data)
+        if version == "DL1":
+            telescope_ids_list = hdf5_file.root.configuration.instrument.subarray.layout.read()[:]["tel_id"]
+            for event in hdf5_file.root.dl1.event.subarray.trigger:
+                tel_ids = telescope_ids_list[event["tels_with_trigger"]]
+                for tel_id in tel_ids:
+                    telescope_type = None
+                    for t_type, tels in array_data.items():
+                        if tel_id in tels.keys():
+                            telescope_type = t_type
+                            break
+                    if telescope_type is None:
+                        continue
                     telescope_data = dict(
-                        telescope_id=real_telescope_id,
-                        event_unique_id=event_unique_id,
+                        telescope_id=tel_id,
+                        event_unique_id=str(event["obs_id"]) + "_" + str(event["event_id"]) + "_" + str(n_file),
                         type=telescope_type,
-                        x=array_data[telescope_type_alias][real_telescope_id]["x"],
-                        y=array_data[telescope_type_alias][real_telescope_id]["y"],
-                        z=array_data[telescope_type_alias][real_telescope_id]["z"],
-                        observation_indice=observation_indice
+                        x=array_data[telescope_type][tel_id]["x"],
+                        y=array_data[telescope_type][tel_id]["y"],
+                        z=array_data[telescope_type][tel_id]["z"],
+                        observation_indice=str(event["obs_id"]) + "_" + str(event["event_id"]) + "_" + str(tel_id) + "_" + str(n_file)#esta combinación garantiza identificador unico en todos los campos
                     )
                     telescopes_data.append(telescope_data)
     except KeyboardInterrupt:
@@ -288,9 +342,9 @@ def generate_dataset(files_path=None, folder_path=None, output_folder=".", appen
 
     total_events = 0
     total_observations = 0
-    for file in tqdm(files):
+    for n_file, file in enumerate(tqdm(files)):
         logging.info(f"Extracting: {file}")
-        events_data, telescopes_data = extract_data(file, version)
+        events_data, telescopes_data = extract_data(file, n_file, version)
         total_events += len(events_data)
         total_observations += len(telescopes_data)
         try:
@@ -437,7 +491,7 @@ def describe_dataset(dataset, save_to=None):
             save_file.write(by_telescope.to_string())
 
 
-def aggregate_dataset(dataset, az=True, log10_mc_energy=True, hdf5_file=True):
+def aggregate_dataset(dataset, version, az=True, log10_mc_energy=True, hdf5_file=True):
     """
     Perform simple aggegation to targe columns.
 
@@ -445,6 +499,8 @@ def aggregate_dataset(dataset, az=True, log10_mc_energy=True, hdf5_file=True):
     ==========
     az : `bool`, optional
         Translate domain from [0, 2\pi] to [-\pi, \pi]. (default=False)
+    version: string of the prod5 file version. 
+        used to translate to rad from degree angles.
     log10_mc_energy : `bool`, optional
         Add new log10_mc_energy column, with the logarithm values of mc_energy.
     Returns
@@ -452,6 +508,9 @@ def aggregate_dataset(dataset, az=True, log10_mc_energy=True, hdf5_file=True):
     `pd.DataFrame`
         Dataset with aggregate information.
     """
+    if version == "DL1":
+        dataset["alt"] = dataset["alt"].apply(lambda deg: np.deg2rad(deg))
+        dataset["az"] = dataset["az"].apply(lambda deg: np.deg2rad(deg))
     if az:
         dataset["az"] = dataset["az"].apply(lambda rad: np.arctan2(np.sin(rad), np.cos(rad)))
     if log10_mc_energy:
@@ -461,7 +520,7 @@ def aggregate_dataset(dataset, az=True, log10_mc_energy=True, hdf5_file=True):
     return dataset
 
 
-def filter_dataset(dataset, telescopes=[], number_of_observations=[], domain={}):
+def filter_dataset(dataset, version, telescopes=[], number_of_observations=[], domain={}):
     """
     Select a subset from the dataset given some restrictions.
 
@@ -470,6 +529,8 @@ def filter_dataset(dataset, telescopes=[], number_of_observations=[], domain={})
 
     Parameters
     ==========
+    version : string with the version of the prod5 file
+        used for translation of telescope alias
     telescopes : `list` of `str` or 'str'
         Selected telescopes type for the dataset. 'str' if is just one.
     number_of_observations : `list` of `int` or 'int
@@ -483,7 +544,7 @@ def filter_dataset(dataset, telescopes=[], number_of_observations=[], domain={})
         Filtered dataset.
     """
     if isinstance(telescopes, str):
-        telescopes = [telescopes]
+        telescopes = [TELESCOPES_ALIAS[version][telescopes]]
     if isinstance(number_of_observations, int):
         number_of_observations = [number_of_observations]
 

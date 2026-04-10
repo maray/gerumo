@@ -6,21 +6,21 @@
     "configurations": [
         {
             "name": "Evaluate Experiment",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
-            "program": "evaluate.py",
+            "program": "prepare_dataset.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/train",
             "args": [
-                "--results",
-                "--samples",
-                "--experiment",
-                "/mnt/e/projects/gerumo-results/baseline/alt_az/BMO_UNIT_MST_e166d9"
+                "--split","0.2",
+                "--output", "dataset/test",
+                "--files", "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Dataset CTAO Monte Carlo Simulations - Eventlist on DL2 prod5/7298569/gamma-diffuse_with_images_00.dl2.h5",
+                "--version", "DL1"
             ]
           },
           {
             "name": "Evaluate Assembler",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "evaluate.py",
             "console": "integratedTerminal",

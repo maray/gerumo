@@ -56,21 +56,23 @@ def train_model(model_name, model_constructor, assembler_constructor, model_extr
     train_dataset      = load_dataset(train_events_csv, train_telescope_csv, replace_folder_train)
     validation_dataset = load_dataset(validation_events_csv, validation_telescope_csv, replace_folder_validation)
 
-    train_dataset = aggregate_dataset(train_dataset, az=True, log10_mc_energy=True)
-    train_dataset = filter_dataset(train_dataset, telescope, min_observations, target_domains)
+    train_dataset = aggregate_dataset(train_dataset, version, az=True, log10_mc_energy=True)
+    train_dataset = filter_dataset(train_dataset, version, telescope, min_observations, target_domains)
     
-    validation_dataset = aggregate_dataset(validation_dataset, az=True, log10_mc_energy=True, hdf5_file=True)
-    validation_dataset = filter_dataset(validation_dataset, telescope, min_observations, target_domains)
+    validation_dataset = aggregate_dataset(validation_dataset, version, az=True, log10_mc_energy=True, hdf5_file=True)
+    validation_dataset = filter_dataset(validation_dataset, version, telescope, min_observations, target_domains)
 
     # Preprocessing pipes
     ## input preprocessing
     preprocess_input_pipes = {}
     if "CameraPipe" in preprocessing_parameters:
         camera_parameters = preprocessing_parameters["CameraPipe"]
+        #falta crear escaladores DL1 y los archivos de pixel position
         camera_pipe = CameraPipe(telescope_type=telescope, version=version, **camera_parameters)
         preprocess_input_pipes['CameraPipe'] = camera_pipe
     if "TelescopeFeaturesPipe" in preprocessing_parameters:
         telescopefeatures_parameters = preprocessing_parameters["TelescopeFeaturesPipe"]
+        #Falta agregar también el escalador a la siguiente linea de forma indirecta
         telescope_features_pipe = TelescopeFeaturesPipe(telescope_type=telescope, version=version, **telescopefeatures_parameters)
         preprocess_input_pipes['TelescopeFeaturesPipe'] = telescope_features_pipe
     ## output preprocessing

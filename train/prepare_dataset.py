@@ -18,7 +18,7 @@ if __name__ == "__main__":
     ap.add_argument("-s", "--split", type=float, default=0.1,
                     help="Validation ratio for split data.")
     ap.add_argument("-v", "--version", type=str, default="ML1",
-                    help="Dataset Prod3b version [ML1 or ML2].") 
+                    help="Dataset Prod3b version [ML1 or ML2]. DL1 for Prod5.") 
     ap.add_argument("-a", "--append", dest='append_write', action='store_true')       
     args = vars(ap.parse_args())
 

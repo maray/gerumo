@@ -43,7 +43,11 @@ _images_attributes = {
     "ML2": {
         "charge":   "charge",
         "peakpos":   "peakpos",
-    }    
+    },
+    "DL1": {
+        "charge":   "image",
+        "peakpos":  "peak_time",
+    }
 }
 
 
@@ -74,22 +78,47 @@ def load_cameras(dataset, version="ML1"):
     respond = [None] * len(dataset)
     indices = np.arange(len(dataset))
     # iterate over file
-    for hdf5_filepath in hdf5_filepaths:
-        #with tables.open_file(hdf5_filepath, "r") as hdf5_file:
-        hdf5_file = synchronized_open_file(hdf5_filepath, mode="r")
-        # and over telescope tables
-        for telescope_type in telescopes:
-            telescope_alias = TELESCOPES_ALIAS[version][telescope_type]
-            # select indices for this file and telescope
-            selector = (dataset["hdf5_filepath"] == hdf5_filepath) & (dataset["type"] == telescope_type)
-            observations_indices_selected = dataset[selector]["observation_indice"].to_numpy()
-            respond_indices_selected = indices[selector]
-            # load images and copy results
-            images = hdf5_file.root[telescope_alias][observations_indices_selected]
-            for i, img in zip(respond_indices_selected, images):
-                respond[i] = (img[_images_attributes[version]["charge"]], img[_images_attributes[version]["peakpos"]]) 
-        # Free lock
-        synchronized_close_file(hdf5_file)
+    if version == "DL1":
+        for hdf5_filepath in hdf5_filepaths:
+            #with tables.open_file(hdf5_filepath, "r") as hdf5_file:
+            hdf5_file = synchronized_open_file(hdf5_filepath, mode="r")
+            # and over telescope tables
+            for telescope_type in telescopes:
+                # select indices for this file and telescope
+                selector = (dataset["hdf5_filepath"] == hdf5_filepath) & (dataset["type"] == telescope_type)
+                observations_indices_selected = dataset[selector]["observation_indice"]#.to_numpy()
+                observations_indices_selected = np.array([list(map(int, row.split("_"))) for row in observations_indices_selected])
+                respond_indices_selected = indices[selector]
+                # load images and copy results
+                for i, obs_ind_data in zip(respond_indices_selected,observations_indices_selected):
+                    obs_id = obs_ind_data[0]
+                    event_id = obs_ind_data[1]
+                    tel = obs_ind_data[2]
+                    tel_name = f'tel_{tel:03d}'
+                    tel_tabla = hdf5_file.root.dl1.event.telescope.images[tel_name]
+                    for img in tel_tabla:
+                        if img["obs_id"] == obs_id and img["event_id"] == event_id:
+                            break
+                    respond[i] = (img[_images_attributes[version]["charge"]], img[_images_attributes[version]["peakpos"]])
+            synchronized_close_file(hdf5_file)
+
+    else:
+        for hdf5_filepath in hdf5_filepaths:
+            #with tables.open_file(hdf5_filepath, "r") as hdf5_file:
+            hdf5_file = synchronized_open_file(hdf5_filepath, mode="r")
+            # and over telescope tables
+            for telescope_type in telescopes:
+                telescope_alias = TELESCOPES_ALIAS[version][telescope_type]
+                # select indices for this file and telescope
+                selector = (dataset["hdf5_filepath"] == hdf5_filepath) & (dataset["type"] == telescope_type)
+                observations_indices_selected = dataset[selector]["observation_indice"].to_numpy()
+                respond_indices_selected = indices[selector]
+                # load images and copy results
+                images = hdf5_file.root[telescope_alias][observations_indices_selected]
+                for i, img in zip(respond_indices_selected, images):
+                    respond[i] = (img[_images_attributes[version]["charge"]], img[_images_attributes[version]["peakpos"]]) 
+            # Free lock
+            synchronized_close_file(hdf5_file)
     return respond
     
 def load_camera_geometry(telescope_type, version="ML1"):

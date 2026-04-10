@@ -1,0 +1,28 @@
+10 abril 2026
+
+camera.py:
+Se agregsron los datos de diccionario _images atributes para la imagen y peak time en DL1.
+load_camera: agregada compatibilidad con DL1.
+
+constants.py:
+Agregados los TELESCOPES_ALIAS para DL1
+
+dataset.py:
+agregado DL1 en diccionarios relevantes.
+extract_data: agregada la variable de entrada n_file que indica el número del archivo que se está leyendo al cargar datos de una carpeta.
+Agregada compatibilidad con DL1. El campo event_unique_id es reemplazado por obs_id _ event_id _ n_file en el caso de DL1.
+El campo observation_indice es suplantado por el valor str(event["obs_id"]) + "_" + str(event["event_id"]) + "_" + str(tel_id) + "_" + str(n_file).
+agregate_dataset y filter_dataset ahora toman la variable de entrada version y son compatibles con DL1. agregate_dataset transforma los ángulos en grados a radianes.
+
+Agregados archivos de posición de pixeles para LST y MST 
+
+Preprocesing debug.ipynb:
+Cuaderno de debug de funciones de prerocesado. Incluye el método para crear los archivos de pixels_positions que hay hasta la fecha.
+
+prod3 explorer.ipynb:
+Cuaderno para explorar un archivo prod3 de referencia.
+
+Test_Sven_preprocesing.ipyng:
+Cuaderno de pruebas y exploración de archivos prod5.
+
+

@@ -127,6 +127,7 @@ class AssemblerUnitGenerator(keras.utils.Sequence):
         if "CameraPipe" in self.preprocess_input_pipes:
             cameras = self.preprocess_input_pipes["CameraPipe"](cameras)
         # Generate square images
+        #siguiente función que debe actualizarse
         images = cameras_to_images(cameras, telescope_types, self.input_image_mode, self.input_image_mask, version=self.version)
         # Build batch
         batch_images = np.array(images)                                   
