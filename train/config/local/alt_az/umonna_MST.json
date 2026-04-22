@@ -1,0 +1,73 @@
+{
+    "model_name": "UMONNA_UNIT_MST_DL1_V1",
+    "model_constructor": "umonna_unit",
+    "assembler_constructor": "umonna",
+    "model_extra_params": {
+        "latent_variables": 600
+    },
+    "telescope" : "MST_NectarCam",
+    "output_folder" : "./output",
+    
+    "version": "DL1",
+    "train_events_csv"    : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/dataset completo/train_events.csv",
+    "train_telescope_csv" : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/dataset completo/train_telescopes.csv",
+    "replace_folder_train" : null,
+    "validation_events_csv"    : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/dataset completo/validation_events.csv",
+    "validation_telescope_csv" : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/dataset completo/validation_telescopes.csv",
+    "replace_folder_validation" : null,
+    "test_events_csv"    : "./datasets/test_events.csv",
+    "test_telescope_csv" : "./datasets/test_telescopes.csv",
+    "replace_folder_test" : null,
+    
+    "input_image_mode" : "simple-shift",
+    "input_image_mask" : true,
+    "min_observations" : 1,
+    "input_features" : ["x", "y"],
+    
+    "targets" : ["alt", "az"],
+    "target_mode" : "one_cell",
+    "target_shapes" : {
+        "alt": 81, 
+        "az": 81, 
+        "log10_mc_energy": 81
+    },
+    "target_domains" : {
+        "alt": [1.15, 1.3], 
+        "az": [-0.25, 0.25], 
+        "log10_mc_energy": [-2.351, 2.47]
+    },
+    "target_sigmas" : null,
+ 
+    "preprocessing": {
+        "CameraPipe" : {
+            "charge_scaler_value" : 62.652400970459,
+            "peak_scaler_path" : "DL1_MST_NectarCam_peak_scaler",
+            "tailcuts_clean_params": {"boundary_thresh": 6, "picture_thresh": 14}
+        },
+        "TelescopeFeaturesPipe": {
+            "array_scaler_path": "DL1_array-scaler"
+        }
+    },
+
+
+    "batch_size" : 64,             
+    "epochs" : 50,
+    "loss" : "crossentropy",
+    "optimizer": {
+        "learning_rate": 1e-3,
+        "name": "sgd",
+        "extra_parameters": {
+            "momentum": 0.01,
+            "nesterov": true
+        }
+    },
+  
+    "save_checkpoints" : true,
+    "save_predictions" : true,
+    "save_regressions" : true,
+    
+
+    "summary" : false,
+    "plot_only" : false,
+    "save_plot" : false
+ }

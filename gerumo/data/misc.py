@@ -149,49 +149,81 @@ def extract_pixel_positions(hdf5_filepath, pixpos_folder, version="ML2"):
     in a numpy file format.
     """
     inverse_alias = {TELESCOPES_ALIAS[version][t]:t for t in TELESCOPES}
-    modes = ('raw', 'simple', 'simple-shift')
+    modes = ('raw', 'simple', 'simple-shift', 'time', 'time_shift')
     pixpos_folder = join(pixpos_folder, version)
     print(pixpos_folder)
 
     hdf5_file = tables.open_file(hdf5_filepath, "r")
-    telescopes_info = hdf5_file.root[_telescope_table[version]]
+    if version == "DL1":
+        type_geometry_dict = {}
+        telescopes_info = hdf5_file.root.configuration.instrument.subarray.layout
+        geometry_group = hdf5_file.root.configuration.instrument.telescope.camera
+    else:
+        telescopes_info = hdf5_file.root[_telescope_table[version]]
 
     all_pixpos = {}
     
     # Extract pixel position array from hdf5 file
     raw_pixpos = {}
-    for telescope in telescopes_info:
-        type_ = telescope[_telescopes_info_attributes[version]["type"]].decode("utf-8")
-        if type_ not in inverse_alias:
-            continue
-        num_pixels = telescope[_telescopes_info_attributes[version]["num_pixels"]]
-        type_ = inverse_alias[type_]
-        if version == "ML2":
-            raw_pixpos[type_] = telescope[_telescopes_info_attributes[version]["pixel_pos"]][:num_pixels, :].T
-        else:
-            raw_pixpos[type_] = telescope[_telescopes_info_attributes[version]["pixel_pos"]][:, :num_pixels]
+    if version == "DL1":
+        for tel in telescopes_info:
+            tipo = tel["type"].decode("utf-8")
+            if tipo not in type_geometry_dict:
+                type_geometry_dict[tipo] = tel["camera_index"]
+        for t in type_geometry_dict:
+            if t not in inverse_alias:
+                continue
+            geometry_index = "geometry_" + str(type_geometry_dict[t])
+            raw_pixpos[t] = []
+            geometry = geometry_group[geometry_index]
+            num_pixels = len(geometry)
+            raw_pixpos[t].append(geometry.cols.pix_x[:])
+            raw_pixpos[t].append(geometry.cols.pix_y[:])
+    else:
+        for telescope in telescopes_info:
+            type_ = telescope[_telescopes_info_attributes[version]["type"]].decode("utf-8")
+            if type_ not in inverse_alias:
+                continue
+            num_pixels = telescope[_telescopes_info_attributes[version]["num_pixels"]]
+            type_ = inverse_alias[type_]
+            if version == "ML2":
+                raw_pixpos[type_] = telescope[_telescopes_info_attributes[version]["pixel_pos"]][:num_pixels, :].T
+            else:
+                raw_pixpos[type_] = telescope[_telescopes_info_attributes[version]["pixel_pos"]][:, :num_pixels]
     
     # Save raw pixpos
     all_pixpos['raw'] = {}
     for telescope, pixpos in raw_pixpos.items():
-        if telescope == "LST_LSTCam":
+        if telescope == TELESCOPES_ALIAS[version]["LST_LSTCam"]:
             LST_LSTCam_not_aligm = pixpos
             all_pixpos['raw']['LST_LSTCam_not_aligm'] = LST_LSTCam_not_aligm
             raw_pixpos["LST_LSTCam"] = LST_LSTCam_align(pixpos)
             pixpos = raw_pixpos["LST_LSTCam"]
             np.savetxt(join(pixpos_folder,'raw', f'{telescope}_not_align.npy'), LST_LSTCam_not_aligm)
+        if telescope == TELESCOPES_ALIAS[version]["MST_NectarCam"]:
+            MST_FlashCam_not_aligm = pixpos
+            all_pixpos['raw']['MST_FlashCam_not_aligm'] = MST_FlashCam_not_aligm
+            raw_pixpos[telescope] = LST_LSTCam_align(pixpos)
+            pixpos = raw_pixpos[telescope]
+            np.savetxt(join(pixpos_folder,'raw', f'{telescope}_not_align.npy'), MST_FlashCam_not_aligm)
         np.savetxt(join(pixpos_folder,'raw', f'{telescope}.npy'), pixpos)
         all_pixpos['raw'][telescope] = pixpos
 
     # Generate simple align and shift align
     all_pixpos['simple'] = {}
     all_pixpos['simple_shift'] = {}
+    all_pixpos["time"] = {}
+    all_pixpos["time_shift"] = {}
     for telescope, pixpos in raw_pixpos.items():
         simple, shift = to_simple_and_shift(pixpos)
         all_pixpos['simple'][telescope] = simple
+        all_pixpos['time'][telescope] = simple
         all_pixpos['shift'][telescope] = shift
+        all_pixpos['time_shift'][telescope] = shift
         np.savetxt(join(pixpos_folder,'simple', f'{telescope}.npy'), simple)
+        np.savetxt(join(pixpos_folder,'time', f'{telescope}.npy'), simple)
         np.savetxt(join(pixpos_folder,'simple_shift', f'{telescope}.npy'), shift)
+        np.savetxt(join(pixpos_folder,'time_shift', f'{telescope}.npy'), shift)
     
     return all_pixpos
 
@@ -208,7 +240,7 @@ def estimate_alphas(dataset, column="log10_mc_energy", bins=81, rescale=None):
     Parameters
     ==========
     dataset :  `pd.DataFrame`
-        Loaded dataset.
+        Loaded dataset. Dataset of the events CSV with mc_energy transformed to log10
     column : `str`
         Target name, dataset column.
     bins : `int`
@@ -231,9 +263,9 @@ def estimate_alphas(dataset, column="log10_mc_energy", bins=81, rescale=None):
     return alphas
 
 
-def get_alphas(telescope):
+def get_alphas(telescope, version):
     "Alpha values for focal loss precomputed for log10 mc_energy with 81 bins in range (0.1, 1)"
-    return {
+    return {"ML1": {
         'SST1M_DigiCam': np.array(
                [0.99981382, 1.        , 1.        , 1.        , 0.99981382,
                 0.99962764, 0.99832437, 0.99795201, 0.99664874, 0.99292511,
@@ -288,4 +320,36 @@ def get_alphas(telescope):
                 0.98151606, 0.96840926, 0.99058999, 0.99395071, 0.9976475 ,
                 0.99428678, 1.        , 0.99932786, 0.99831964, 0.995295  ,
                 0.99395071])
-        }[telescope]
+        },
+        "DL1" : {
+            'MST_NectarCam' : np.array(
+                [0.99999506, 1.     ,    0.99997038, 0.99990128, 0.99984698, 0.99965448,
+                0.99928428, 0.9984106,  0.99733455, 0.99441736, 0.98911113, 0.97966358,
+                0.96351785, 0.93673498, 0.89874241, 0.84246187, 0.77139794, 0.68445975,
+                0.58732868, 0.49292723, 0.406532,   0.33290628, 0.27234127, 0.21821283,
+                0.18963325, 0.16311693, 0.139271,   0.12349547, 0.10933402, 0.1,
+                0.10161902, 0.11152562, 0.11705396, 0.14202037, 0.16029353, 0.19898208,
+                0.2243878,  0.25670888, 0.30321609, 0.35421015, 0.3925828,  0.43340865,
+                0.47326211, 0.51376712, 0.54894122, 0.58348845, 0.61294664, 0.64687687,
+                0.68256926, 0.70142487, 0.73144576, 0.76105203, 0.77250361, 0.79293381,
+                0.82017079, 0.83034393, 0.85140101, 0.8702813,  0.87884036, 0.89234039,
+                0.90352048, 0.90782963, 0.91464134, 0.93184832, 0.93096477, 0.93752968,
+                0.94987468, 0.95305348, 0.96157306, 0.96222955, 0.96913998, 0.96992974,
+                0.97392792, 0.97543341, 0.98235865, 0.98415043, 0.9825709,  0.99130766,
+                0.99208262, 0.99309944, 0.99375593]),
+            'LST_LSTCam' : np.array(
+                [1.        , 0.99895556, 0.99754335, 0.99485134, 0.98954087, 0.98106765,
+                0.96791651, 0.94623331, 0.9097661 , 0.86676746, 0.80058515, 0.73221098,
+                0.64865563, 0.57348523, 0.49269544, 0.43751655, 0.37383501, 0.33585263,
+                0.29923833, 0.26712541, 0.23362972, 0.20384106, 0.19345548, 0.15488469,
+                0.14839738, 0.14451382, 0.11757899, 0.10832611, 0.10607542, 0.12087413,
+                0.1       , 0.14099802, 0.15637044, 0.18252562, 0.21150521, 0.25532763,
+                0.26972916, 0.29682581, 0.34457593, 0.38981056, 0.43241202, 0.46392181,
+                0.49781468, 0.54487341, 0.57719227, 0.60177343, 0.63540151, 0.66314542,
+                0.70117193, 0.72122227, 0.74346447, 0.77597457, 0.78534512, 0.80501299,
+                0.82532812, 0.84202448, 0.8616188 , 0.88184567, 0.89073078, 0.90520586,
+                0.91622399, 0.92109315, 0.92265246, 0.9389075 , 0.94159952, 0.94857227,
+                0.95838414, 0.96097318, 0.96681323, 0.96862261, 0.97513934, 0.97559536,
+                0.97822854, 0.98042039, 0.98558376, 0.98839346, 0.98624573, 0.99333617,
+                0.99357153, 0.99495432, 0.99545447])
+        }}[version][telescope]

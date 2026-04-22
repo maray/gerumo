@@ -136,11 +136,11 @@ def load_dataset_from_configuration(config_file, include_samples_dataset=False,
             r = np.random.RandomState(42)
             sample_events = r.choice(sample_events, size=5, replace=False)
         sample_dataset = dataset[dataset["event_unique_id"].isin(sample_events)]
-        sample_dataset = filter_dataset(sample_dataset, telescope, [0], target_domains)
+        sample_dataset = filter_dataset(sample_dataset, version, telescope, [0], target_domains)
     else:
         sample_dataset = None
         sample_generator = None
-    dataset = filter_dataset(dataset, telescope, [0], target_domains)
+    dataset = filter_dataset(dataset, version, telescope, [0], target_domains)
     
     ## Preprocessing
     preprocessing_parameters = config.get("preprocessing", {})
@@ -235,14 +235,14 @@ def load_dataset_from_assembler_configuration(assembler_config_file, include_sam
         r = np.random.RandomState(42)
         sample_events = r.choice(sample_events, size=5, replace=False)
         sample_dataset = dataset[dataset["event_unique_id"].isin(sample_events)]
-        sample_dataset = filter_dataset(sample_dataset, telescopes.keys(), min_observations, target_domains)
+        sample_dataset = filter_dataset(sample_dataset, version, telescopes.keys(), min_observations, target_domains)
         if len(sample_dataset) == 0: raise ValueError("Sample dataset is empty.")
     else:
         sample_events = None
         sample_dataset = None
         sample_generator = None
 
-    dataset = filter_dataset(dataset, telescopes.keys(), min_observations, target_domains)
+    dataset = filter_dataset(dataset, version, telescopes.keys(), min_observations, target_domains)
     
     # Evaluate assembler
     ## Preprocessing

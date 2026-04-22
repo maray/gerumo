@@ -56,10 +56,10 @@ def train_model(model_name, model_constructor, assembler_constructor, model_extr
     train_dataset      = load_dataset(train_events_csv, train_telescope_csv, replace_folder_train)
     validation_dataset = load_dataset(validation_events_csv, validation_telescope_csv, replace_folder_validation)
 
-    train_dataset = aggregate_dataset(train_dataset, version, az=True, log10_mc_energy=True)
+    train_dataset = aggregate_dataset(train_dataset, az=True, log10_mc_energy=True)
     train_dataset = filter_dataset(train_dataset, version, telescope, min_observations, target_domains)
     
-    validation_dataset = aggregate_dataset(validation_dataset, version, az=True, log10_mc_energy=True, hdf5_file=True)
+    validation_dataset = aggregate_dataset(validation_dataset, az=True, log10_mc_energy=True, hdf5_file=True)
     validation_dataset = filter_dataset(validation_dataset, version, telescope, min_observations, target_domains)
 
     # Preprocessing pipes
@@ -181,7 +181,7 @@ def train_model(model_name, model_constructor, assembler_constructor, model_extr
             if loss == "crossentropy_loss":
                 loss_ = LOSS[loss](dimensions=len(targets))
             elif loss == "focal_loss":
-                alphas = get_alphas(telescope)
+                alphas = get_alphas(telescope,version)
                 loss_ = LOSS[loss](dimensions=len(targets), alphas=alphas, gamma=2.0)
             else:
                 loss_ = LOSS[loss]()
@@ -204,7 +204,7 @@ def train_model(model_name, model_constructor, assembler_constructor, model_extr
         if loss == "crossentropy_loss":
             loss_ = LOSS[loss](dimensions=len(targets))
         elif loss == "focal_loss":
-            alphas = get_alphas(telescope)
+            alphas = get_alphas(telescope, version)
             loss_ = LOSS[loss](dimensions=len(targets), alphas=alphas, gamma=2.0)
         else:
             loss_ = LOSS[loss]()

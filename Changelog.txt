@@ -25,4 +25,40 @@ Cuaderno para explorar un archivo prod3 de referencia.
 Test_Sven_preprocesing.ipyng:
 Cuaderno de pruebas y exploración de archivos prod5.
 
+22 abril 2026
+
+camera.py:
+Agregada compatibilidad para DL1 en cameras_to_images.
+
+constants.py:
+Agregado el dict TELESCOPES_INVERSE_ALIAS.
+Agregada "MST_NectarCam" a la lista de telescopios, camaras, aliases, tamaños de cámara y formas de entrada.
+Se agregaron los archivos de posición de pixeles al diccionario PIXELS_POSITION con compatibilidad para DL1 y NectarCam.
+Ahora si no se encuentra un archivo, se enviará un aviso en vez de no cargar ningún archivo de posición de pixeles.
+
+dataset.py:
+Cambios en extract_data hacen que al generar el archivo csv de datos se guarde el valor de los ángulos al y az en radianes de forma correcta.
+Para compensar esto, se quito esta función de la función agregate_dataset.
+
+misc.py:
+extract_pixel_positions, la función que genera los archivos de posición de pixeles de los telescopios fue modificada para poder extraer información de prod5.
+Se agregó la función para generar directamente los archivos de "time.npy" y "time-shift.npy" en vez de tener que copiar los "simple.npy" y "simple-shift.npy"
+La función get_alphas fue actualizada con los valores de "LST_LSTCam" y "MST_NectarCam" para "DL1". Para esto requiere del parametro de entrada extra version.
+
+preprocessing.py:
+Agregado código para poder cargar los escalares de DL1.
+Reparado bug que no dividia la matriz de carga por el escalar de carga de forma correcta.
+
+umona.py:
+Agregada opción de tamaño de kernel para "MST_NectarCam". Mismo tamaño que "LST_LSTCam".
+
+preprocesing_debug.ipynb:
+Agregada formulas para obtener los alfas.
+Trabajo y debug de pipes.
+
+pipes_debug.ipynb:
+Notebook para debugear pipes y otras funciones de las cámaras.
+
+umona_LST.json y umona_MST.json:
+archivos json con la configuración para entrenar los telescopios LST y MST, respectivamente.
 

@@ -2,6 +2,7 @@ from ctapipe.image import tailcuts_clean, dilate
 from joblib import load
 from . import load_camera_geometry
 from os.path import join, exists, dirname
+import numpy as np
 
 __all__ = ["CameraPipe", "MultiCameraPipe", "TelescopeFeaturesPipe"]
 
@@ -10,7 +11,10 @@ __default_scalers = {
     "ML1_array-scaler": join(__scalers_folder, "ML1_array-scaler.gz"),
     "ML1_LST_LSTCam_peak_scaler" : join(__scalers_folder, "ML1_LST_LSTCam_peak_scaler.gz"),
     "ML1_MST_FlashCam_peak_scaler" : join(__scalers_folder, "ML1_MST_FlashCam_peak_scaler.gz"),
-    "ML1_SST1M_DigiCam_peak_scaler" : join(__scalers_folder, "ML1_SST1M_DigiCam_peak_scaler.gz")
+    "ML1_SST1M_DigiCam_peak_scaler" : join(__scalers_folder, "ML1_SST1M_DigiCam_peak_scaler.gz"),
+    "DL1_array-scaler": join(__scalers_folder, "DL1_array-scaler.gz"),
+    "DL1_LST_LSTCam_peak_scaler" : join(__scalers_folder, "DL1_LST_LSTCam_peak_scaler.gz"),
+    "DL1_MST_NectarCam_peak_scaler" : join(__scalers_folder, "DL1_MST_NectarCam_peak_scaler.gz")
 }
 
 def load_scaler(default_name_or_custom_scaler_path):
@@ -43,7 +47,7 @@ class CameraPipe():
                 for _ in range(3):
                     cleanmask = dilate(self.geometry, cleanmask)
                 peak[~cleanmask] = 0.0
-            charge /= self.charge_scaler_value
+            charge = np.divide(charge,self.charge_scaler_value)
             if self.peak_scaler is not None:
                 peak  = self.peak_scaler.transform(peak.reshape((-1, 1))).flatten()
             results.append((charge, peak))

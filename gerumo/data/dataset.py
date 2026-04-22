@@ -192,20 +192,32 @@ def extract_data(hdf5_filepath, n_file, version='ML2'):
             # Event data
             if version == "DL1":
                 event_unique_id = str(event["obs_id"]) + "_" + str(event["event_id"]) + "_" + str(n_file)
+                event_data = dict(
+                    event_unique_id=event_unique_id,
+                    event_id=event[_event_attributes[version]["event_id"]],
+                    source=source,
+                    folder=folder,
+                    core_x=event[_event_attributes[version]["core_x"]],
+                    core_y=event[_event_attributes[version]["core_y"]],
+                    h_first_int=event[_event_attributes[version]["h_first_int"]],
+                    alt=np.deg2rad(event[_event_attributes[version]["alt"]]),
+                    az=np.deg2rad(event[_event_attributes[version]["az"]]),
+                    mc_energy=event[_event_attributes[version]["mc_energy"]]
+                )
             else:
                 event_unique_id = uuid.uuid4().hex[:20]
-            event_data = dict(
-                event_unique_id=event_unique_id,
-                event_id=event[_event_attributes[version]["event_id"]],
-                source=source,
-                folder=folder,
-                core_x=event[_event_attributes[version]["core_x"]],
-                core_y=event[_event_attributes[version]["core_y"]],
-                h_first_int=event[_event_attributes[version]["h_first_int"]],
-                alt=event[_event_attributes[version]["alt"]],
-                az=event[_event_attributes[version]["az"]],
-                mc_energy=event[_event_attributes[version]["mc_energy"]]
-            )
+                event_data = dict(
+                    event_unique_id=event_unique_id,
+                    event_id=event[_event_attributes[version]["event_id"]],
+                    source=source,
+                    folder=folder,
+                    core_x=event[_event_attributes[version]["core_x"]],
+                    core_y=event[_event_attributes[version]["core_y"]],
+                    h_first_int=event[_event_attributes[version]["h_first_int"]],
+                    alt=event[_event_attributes[version]["alt"]],
+                    az=event[_event_attributes[version]["az"]],
+                    mc_energy=event[_event_attributes[version]["mc_energy"]]
+                )
             events_data.append(event_data)
 
             # Observations data
@@ -491,7 +503,7 @@ def describe_dataset(dataset, save_to=None):
             save_file.write(by_telescope.to_string())
 
 
-def aggregate_dataset(dataset, version, az=True, log10_mc_energy=True, hdf5_file=True):
+def aggregate_dataset(dataset, az=True, log10_mc_energy=True, hdf5_file=True):
     """
     Perform simple aggegation to targe columns.
 
@@ -508,9 +520,9 @@ def aggregate_dataset(dataset, version, az=True, log10_mc_energy=True, hdf5_file
     `pd.DataFrame`
         Dataset with aggregate information.
     """
-    if version == "DL1":
-        dataset["alt"] = dataset["alt"].apply(lambda deg: np.deg2rad(deg))
-        dataset["az"] = dataset["az"].apply(lambda deg: np.deg2rad(deg))
+    #if version == "DL1":
+    #    dataset["alt"] = dataset["alt"].apply(lambda deg: np.deg2rad(deg))
+    #    dataset["az"] = dataset["az"].apply(lambda deg: np.deg2rad(deg))
     if az:
         dataset["az"] = dataset["az"].apply(lambda rad: np.arctan2(np.sin(rad), np.cos(rad)))
     if log10_mc_energy:

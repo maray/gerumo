@@ -198,6 +198,8 @@ def umonna_unit(telescope, image_mode, image_mask, input_img_shape, input_featur
     filters = 2**(5+len(conv_kernel_sizes))
     if telescope == "LST_LSTCam":
         kernel_size = (3, 2)
+    elif telescope == "MST_NectarCam":
+        kernel_size = (3, 2)
     elif telescope == "MST_FlashCam":
         kernel_size = (5, 1)
     elif telescope == "SST1M_DigiCam":

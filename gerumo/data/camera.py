@@ -14,7 +14,7 @@ from astropy import units
 from os import path
 from . import (
     IMAGES_SIZE, INPUT_SHAPE, 
-    TELESCOPES, TELESCOPES_ALIAS,  TELESCOPE_CAMERA,
+    TELESCOPES, TELESCOPES_ALIAS,  TELESCOPE_CAMERA, TELESCOPES_INVERSE_ALIAS,
     PIXELS_POSITION
 )
 import threading
@@ -362,5 +362,7 @@ def cameras_to_images(cameras, telescopes_type, mode="simple", mask=True, versio
     """
     result_images = []
     for (charge, peakpos), telescope_type in zip(cameras, telescopes_type):
+        if version == "DL1":
+            telescope_type = TELESCOPES_INVERSE_ALIAS[telescope_type]
         result_images.append(camera_to_image(charge, peakpos, telescope_type, mode, mask, version))
     return result_images
