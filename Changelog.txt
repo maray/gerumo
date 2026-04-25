@@ -62,3 +62,8 @@ Notebook para debugear pipes y otras funciones de las cámaras.
 umona_LST.json y umona_MST.json:
 archivos json con la configuración para entrenar los telescopios LST y MST, respectivamente.
 
+
+25 abril 2026
+
+generator.py:
+cambiado el valor de batch_telescope_features y event_telescope_features en el asembler para evitar el error ""X does not have valid feature names, but"

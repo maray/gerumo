@@ -127,11 +127,11 @@ class AssemblerUnitGenerator(keras.utils.Sequence):
         if "CameraPipe" in self.preprocess_input_pipes:
             cameras = self.preprocess_input_pipes["CameraPipe"](cameras)
         # Generate square images
-        #siguiente función que debe actualizarse
         images = cameras_to_images(cameras, telescope_types, self.input_image_mode, self.input_image_mask, version=self.version)
         # Build batch
         batch_images = np.array(images)                                   
-        batch_telescope_features = batch_dataset[self.input_features].values
+        #removido values temporalmente para intentar corregir el error de keys
+        batch_telescope_features = batch_dataset[self.input_features]#.values
         # PreProcessing Telescope Features
         if "TelescopeFeaturesPipe" in self.preprocess_input_pipes:
             batch_telescope_features = self.preprocess_input_pipes["TelescopeFeaturesPipe"](batch_telescope_features)
@@ -322,7 +322,7 @@ class AssemblerGenerator(keras.utils.Sequence):
                                    self.input_image_mode, self.input_image_mask, version=self.version)
 
             # Telescop features
-            event_telescopes_features = event_dataset[self.input_features].values
+            event_telescopes_features = event_dataset[self.input_features]#.values Quitado para intentar acelerar el procesamiento quitando errores
             # Preprocessing Telescope Features
             if "TelescopeFeaturesPipe" in self.preprocess_input_pipes:
                 event_telescopes_features = self.preprocess_input_pipes["TelescopeFeaturesPipe"](event_telescopes_features)
