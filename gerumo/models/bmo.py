@@ -135,11 +135,11 @@ def bmo_unit(telescope, image_mode, image_mask, input_img_shape, input_features_
 class BMO(ModelAssembler):
     # static
     cache_models = {}
-    def __init__(self, sst1m_model_or_path=None, mst_model_or_path=None, lst_model_or_path=None,
+    def __init__(self, sst1m_model_or_path=None, mst_model_or_path=None, mst_nectar_model_or_path = None, lst_model_or_path=None,
                  targets=[], target_domains=tuple(), target_resolutions=tuple(), target_shapes=(),
                  assembler_mode="resample", point_estimation_mode="expected_value", custom_objects=CUSTOM_OBJECTS):
 
-        super().__init__(sst1m_model_or_path=sst1m_model_or_path, mst_model_or_path=mst_model_or_path, lst_model_or_path=lst_model_or_path,
+        super().__init__(sst1m_model_or_path=sst1m_model_or_path, mst_model_or_path=mst_model_or_path, mst_nectar_model_or_path = mst_nectar_model_or_path, lst_model_or_path=lst_model_or_path,
                          targets=targets, target_domains=target_domains, target_shapes=target_shapes, custom_objects=CUSTOM_OBJECTS)
         if assembler_mode not in (
             None, 'resample', 'wasserstein_barycenter', 

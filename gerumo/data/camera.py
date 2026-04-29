@@ -50,6 +50,11 @@ _images_attributes = {
     }
 }
 
+#parameters obtained from dataset
+CAM_PIX_AREA = {
+    "LSTCam" : 0.002079326892271638,
+    "NectarCam" : 0.002079326892271638
+}
 
 
 def load_camera(source, folder, telescope_type, observation_indice, version="ML1"):
@@ -79,28 +84,36 @@ def load_cameras(dataset, version="ML1"):
     indices = np.arange(len(dataset))
     # iterate over file
     if version == "DL1":
+        tel_ids = dataset["telescope_id"].unique()
         for hdf5_filepath in hdf5_filepaths:
             #with tables.open_file(hdf5_filepath, "r") as hdf5_file:
             hdf5_file = synchronized_open_file(hdf5_filepath, mode="r")
             # and over telescope tables
-            for telescope_type in telescopes:
+            for tel_id in tel_ids:
                 # select indices for this file and telescope
-                selector = (dataset["hdf5_filepath"] == hdf5_filepath) & (dataset["type"] == telescope_type)
-                observations_indices_selected = dataset[selector]["observation_indice"]#.to_numpy()
-                observations_indices_selected = np.array([list(map(int, row.split("_"))) for row in observations_indices_selected])
+                selector = (dataset["hdf5_filepath"] == hdf5_filepath) & (dataset["telescope_id"]==tel_id)# & (dataset["type"] == telescope_type) #the condition is removed becasue it is asumed the dataset is laready filtered by type
                 respond_indices_selected = indices[selector]
-                # load images and copy results
-                for i, obs_ind_data in zip(respond_indices_selected,observations_indices_selected):
-                    obs_id = obs_ind_data[0]
-                    event_id = obs_ind_data[1]
-                    tel = obs_ind_data[2]
-                    tel_name = f'tel_{tel:03d}'
-                    tel_tabla = hdf5_file.root.dl1.event.telescope.images[tel_name]
-                    for img in tel_tabla:
-                        if img["obs_id"] == obs_id and img["event_id"] == event_id:
-                            break
-                    respond[i] = (img[_images_attributes[version]["charge"]], img[_images_attributes[version]["peakpos"]])
+                observations_indices_selected = dataset[selector]["image_index"]#.to_numpy()
+                image_data_table = hdf5_file.root.dl1.event.telescope.images[f'tel_{tel_id:03d}']
+                images = image_data_table[observations_indices_selected.values]
+                for i, img in zip(respond_indices_selected, images):
+                    respond[i] = (img[_images_attributes[version]["charge"]], img[_images_attributes[version]["peakpos"]]) 
             synchronized_close_file(hdf5_file)
+
+#                observations_indices_selected = np.array([list(map(int, row.split("_"))) for row in observations_indices_selected])
+#                respond_indices_selected = indices[selector]
+                # load images and copy results
+#                for i, obs_ind_data in zip(respond_indices_selected,observations_indices_selected):
+#                    obs_id = obs_ind_data[0]
+#                    event_id = obs_ind_data[1]
+#                    tel = obs_ind_data[2]
+#                    tel_name = f'tel_{tel:03d}'
+#                    tel_tabla = hdf5_file.root.dl1.event.telescope.images[tel_name]
+#                    for img in tel_tabla:
+#                        if img["obs_id"] == obs_id and img["event_id"] == event_id:
+#                            break
+#                    respond[i] = (img[_images_attributes[version]["charge"]], img[_images_attributes[version]["peakpos"]])
+#            synchronized_close_file(hdf5_file)
 
     else:
         for hdf5_filepath in hdf5_filepaths:
@@ -122,10 +135,16 @@ def load_cameras(dataset, version="ML1"):
     return respond
     
 def load_camera_geometry(telescope_type, version="ML1"):
-    geometry = CameraGeometry.from_name(TELESCOPE_CAMERA[telescope_type])
     pixpos = PIXELS_POSITION[version]['raw'][telescope_type]
-    geometry.pix_x = units.quantity.Quantity(pixpos[0], 'meter')
-    geometry.pix_y = units.quantity.Quantity(pixpos[1], 'meter')
+    n_pix = len(pixpos[0])
+    geometry = CameraGeometry(
+        name= TELESCOPE_CAMERA[telescope_type],
+        pix_id= np.arange(n_pix),
+        pix_x = units.quantity.Quantity(pixpos[0], 'meter'),
+        pix_y = units.quantity.Quantity(pixpos[1], 'meter'),
+        pix_area= units.quantity.Quantity(np.full(n_pix,CAM_PIX_AREA[TELESCOPE_CAMERA[telescope_type]]),'m2'),
+        pix_type= "hexagonal"
+    )
     return geometry
 
 """

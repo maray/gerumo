@@ -16,7 +16,7 @@ from os import path
 from glob import glob
 
 class ModelAssembler():
-    def __init__(self, sst1m_model_or_path=None, mst_model_or_path=None, lst_model_or_path=None,
+    def __init__(self, sst1m_model_or_path=None, mst_model_or_path=None, mst_nectar_model_or_path = None, lst_model_or_path=None,
                     targets=[], target_domains={}, target_shapes=(), custom_objects=CUSTOM_OBJECTS):
         #assert not ((sst1m_model_or_path is None) and (mst_model_or_path is None) and (lst_model_or_path is None)), "No models given" 
         self.models = {}
@@ -25,6 +25,9 @@ class ModelAssembler():
 
         # LOAD SST1M_DigiCam Model
         self.sst_model_path = self.load_model("SST1M_DigiCam", sst1m_model_or_path)
+
+        # LOAD MST_NectarCam Model
+        self.mst_nectar_model_path = self.load_model("MST_NectarCam", mst_nectar_model_or_path)
 
         # LOAD MST_FlashCam Model
         self.mst_model_path = self.load_model("MST_FlashCam", mst_model_or_path)

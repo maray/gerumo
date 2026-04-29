@@ -271,10 +271,10 @@ def umonna_unit(telescope, image_mode, image_mask, input_img_shape, input_featur
     return model
 
 class Umonna(ModelAssembler):
-    def __init__(self, sst1m_model_or_path=None, mst_model_or_path=None, lst_model_or_path=None,
+    def __init__(self, sst1m_model_or_path=None, mst_model_or_path=None, mst_nectar_model_or_path = None, lst_model_or_path=None,
                  targets=[], target_domains=tuple(), target_resolutions=tuple(), target_shapes=(),
                  assembler_mode="normalized_product", point_estimation_mode="expected_value", custom_objects=CUSTOM_OBJECTS):
-        super().__init__(sst1m_model_or_path=sst1m_model_or_path, mst_model_or_path=mst_model_or_path, lst_model_or_path=lst_model_or_path,
+        super().__init__(sst1m_model_or_path=sst1m_model_or_path, mst_model_or_path=mst_model_or_path, mst_nectar_model_or_path = mst_nectar_model_or_path, lst_model_or_path=lst_model_or_path,
                          targets=targets, target_domains=target_domains, target_shapes=target_shapes, custom_objects=custom_objects)
         if assembler_mode not in (None, "normalized_product"):
             raise ValueError(f"Invalid assembler_mode: {assembler_mode}")

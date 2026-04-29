@@ -22,7 +22,7 @@ import numpy as np
 from . import TARGETS, TELESCOPES, TELESCOPES_ALIAS
 
 __all__ = [
-    'extract_data',
+    'build_table_index', 'extract_data',
     'generate_dataset', 'load_dataset', 'save_dataset', 'split_dataset',
     'filter_dataset', 'aggregate_dataset', 'describe_dataset', 'load_hillas_dataset',
     'aggregate_hillas_dataset'
@@ -129,6 +129,7 @@ _event_fieldnames = [
 # CSV Telescope events data
 _telescope_fieldnames = [
     'telescope_id',  # Unique telescope identifier
+    'image_index',  #index in the image/telescope table of a given event/observation/telescope key unique for each file
     'event_unique_id',  # hdf5 event identifier
     'type',  # Telescope type
     'x',  # x array coordinate
@@ -137,6 +138,19 @@ _telescope_fieldnames = [
     'observation_indice'  # Observation indice in table
 ]
 
+
+def build_table_index(hdf5_table):
+    index = {}
+    
+    obs_ids  = hdf5_table[:]["obs_id"]
+    event_ids = hdf5_table[:]["event_id"]
+    tel_ids   = hdf5_table[:]["tel_id"]
+
+    for i in range(len(obs_ids)):
+        key = (obs_ids[i], event_ids[i], tel_ids[i])
+        index[key] = i
+
+    return index
 
 def extract_data(hdf5_filepath, n_file, version='ML2'):
     """Extract data from one hdf5 file."""
@@ -158,6 +172,7 @@ def extract_data(hdf5_filepath, n_file, version='ML2'):
     ## But they are in orden, grouped by type (lst, mst and then sst). In the other hand, the Event table
     ## has 3 indices starting from 0, for each telescope type. 
     ## 'real_telescopes_id' translate events indices ('activation_telescope_id') to array ids ('telescope_id').
+    key_index_telescope_events = {}
 
     if version == "DL1":
         telescope_list = hdf5_file.root.configuration.instrument.subarray.layout
@@ -168,6 +183,10 @@ def extract_data(hdf5_filepath, n_file, version='ML2'):
         telescope_type = telescope[_array_attributes[version]["type"]]
         telescope_type = telescope_type.decode("utf-8") if isinstance(telescope_type, bytes) else telescope_type
         telescope_id = telescope[_array_attributes[version]["telescope_id"]]
+        if version == "DL1":
+            images_table = hdf5_file.root.dl1.event.telescope.images[f'tel_{telescope_id:03d}']
+            key_index_list = build_table_index(images_table)
+            key_index_telescope_events[telescope_id] = key_index_list
         # HERE
         if telescope_type not in array_data:
             array_data[telescope_type] = {}
@@ -248,6 +267,7 @@ def extract_data(hdf5_filepath, n_file, version='ML2'):
                         real_telescope_id = real_telescopes_id[telescope_type_alias][activate_telescope]
                         telescope_data = dict(
                             telescope_id=real_telescope_id,
+                            image_index = None,
                             event_unique_id=event_unique_id,
                             type=telescope_type,
                             x=array_data[telescope_type_alias][real_telescope_id]["x"],
@@ -268,8 +288,13 @@ def extract_data(hdf5_filepath, n_file, version='ML2'):
                             break
                     if telescope_type is None:
                         continue
+                    #images_table = hdf5_file.root.dl1.event.telescope.images[f'tel_{tel_id:03d}']
+                    #key_index_list = build_table_index(images_table)
+                    image_index = key_index_telescope_events[tel_id][(event["obs_id"],event["event_id"],tel_id)]
+                    #image_index = images_table.get_where_list(f'(obs_id == {event["obs_id"]}) & (event_id == {event["event_id"]})')
                     telescope_data = dict(
                         telescope_id=tel_id,
+                        image_index = image_index,
                         event_unique_id=str(event["obs_id"]) + "_" + str(event["event_id"]) + "_" + str(n_file),
                         type=telescope_type,
                         x=array_data[telescope_type][tel_id]["x"],
@@ -528,7 +553,7 @@ def aggregate_dataset(dataset, az=True, log10_mc_energy=True, hdf5_file=True):
     if log10_mc_energy:
         dataset["log10_mc_energy"] = dataset["mc_energy"].apply(lambda energy: np.log10(energy))
     if hdf5_file:
-        dataset["hdf5_filepath"] = dataset[["folder", "source"]].apply(lambda x: path.join(x[0], x[1]), axis=1)
+        dataset["hdf5_filepath"] = dataset[["folder", "source"]].apply(lambda x: path.join(x.iloc[0], x.iloc[1]), axis=1)
     return dataset
 
 

@@ -127,11 +127,11 @@ def cnn_det_unit(telescope, image_mode, image_mask, input_img_shape, input_featu
 
 #the class BMO_DET inherits the structure of ModelAssembler class, which is defined in assembler.py
 class CNN_DET(ModelAssembler):
-    def __init__(self, sst1m_model_or_path=None, mst_model_or_path=None, lst_model_or_path=None,
+    def __init__(self, sst1m_model_or_path=None, mst_model_or_path=None, mst_nectar_model_or_path = None, lst_model_or_path=None,
                  targets=[], target_domains=tuple(), target_resolutions=tuple(), target_shapes=(),
                  assembler_mode="intensity_weighting", point_estimation_mode=None, custom_objects=CUSTOM_OBJECTS):
 
-        super().__init__(sst1m_model_or_path=sst1m_model_or_path, mst_model_or_path=mst_model_or_path, \
+        super().__init__(sst1m_model_or_path=sst1m_model_or_path, mst_model_or_path=mst_model_or_path, mst_nectar_model_or_path = mst_nectar_model_or_path,\
                          lst_model_or_path=lst_model_or_path,
                          targets=targets, target_domains=target_domains, target_shapes=target_shapes, custom_objects=CUSTOM_OBJECTS)
         

@@ -9,11 +9,11 @@
     "output_folder" : "./output",
     
     "version": "DL1",
-    "train_events_csv"    : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/dataset completo/train_events.csv",
-    "train_telescope_csv" : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/dataset completo/train_telescopes.csv",
+    "train_events_csv"    : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/train_events.csv",
+    "train_telescope_csv" : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/train_telescopes.csv",
     "replace_folder_train" : null,
-    "validation_events_csv"    : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/dataset completo/validation_events.csv",
-    "validation_telescope_csv" : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/dataset completo/validation_telescopes.csv",
+    "validation_events_csv"    : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/validation_events.csv",
+    "validation_telescope_csv" : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/validation_telescopes.csv",
     "replace_folder_validation" : null,
     "test_events_csv"    : "./datasets/test_events.csv",
     "test_telescope_csv" : "./datasets/test_telescopes.csv",
@@ -62,9 +62,10 @@
         }
     },
   
-    "save_checkpoints" : true,
-    "save_predictions" : true,
-    "save_regressions" : true,
+    "save_checkpoints" : false,
+    "save_predictions" : false,
+    "save_regressions" : false,
+    "save_loss"        : false,
     
 
     "summary" : false,

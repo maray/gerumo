@@ -67,3 +67,18 @@ archivos json con la configuración para entrenar los telescopios LST y MST, res
 
 generator.py:
 cambiado el valor de batch_telescope_features y event_telescope_features en el asembler para evitar el error ""X does not have valid feature names, but"
+
+29 abril 2026
+
+camera.py:
+Se cambió load_camera_geometry para generar la geometria de cero en vez de utilizar un template predefinido. Se agregó un diccionario con los tamaños de pixeles para este propósito.
+Se arregló load_cameras para ser más rápido tomando directamente los indices de datos de imágenes del csv de datos en vez de buscarlos dentro del archivo hdf5. Mejora de 20 veces de velocidad.
+
+dataset.py:
+Se agregó la colimna "image_index" al dataset de telescopios generado por extract_data. Se utiliza para obtener el número de fila directamente de un evento en la tabla de imágenes del archivo hdf5 correspondiente. La función build_table_index se utilica para generar un índice respectivo al obs_id, event_id y tel_id.
+En agregate_dataset se agregó un .iloc para compatibilizar mejor con python 3.10.
+
+assembler.py:
+Se agregó el atributo y la entrada necesarios para poder procesar telescopios de tipo MST_NectarCam. Esta lógica se extendió a los archivos bmo.py, cnn_det.py y umonna.py
+
+
