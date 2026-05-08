@@ -1,12 +1,12 @@
 {
-    "model_name": "UMONNA_UNIT_MST_NectarCam_DL1_V1",
-    "model_constructor": "umonna_unit",
-    "assembler_constructor": "umonna",
+    "model_name": "CNN_DET_UNIT_MST_NectarCam_DL1_V1",
+    "model_constructor": "cnn_det_unit",
+    "assembler_constructor": "cnn_det",
     "model_extra_params": {
         "latent_variables": 600
     },
     "telescope" : "MST_NectarCam",
-    "output_folder" : "./output/Training gamma-diffuse/UMONA_DET",
+    "output_folder" : "./output/Training gamma-diffuse/CNN-DET",
     
     "version": "DL1",
     "train_events_csv"    : "../dataset/gamma-diffuse only/train_events.csv",
@@ -25,7 +25,7 @@
     "input_features" : ["x", "y"],
     
     "targets" : ["alt", "az"],
-    "target_mode" : "one_cell",
+    "target_mode" : "lineal",
     "target_shapes" : {
         "alt": 81, 
         "az": 81, 
@@ -50,24 +50,21 @@
     },
 
     "use_multiprocessing" : true,
-    "workers" : 8,
-    "max_queue_size" : 32,
-    "batch_size" : 64,             
+    "workers" : 10,
+    "max_queue_size" : 8,
+    "batch_size" : 96,             
     "epochs" : 50,
-    "loss" : "crossentropy",
+    "loss" : "mse",
     "optimizer": {
         "learning_rate": 1e-3,
-        "name": "sgd",
-        "extra_parameters": {
-            "momentum": 0.01,
-            "nesterov": true
-        }
+        "name": "adam",
+        "extra_parameters": null
     },
   
-    "save_checkpoints" : false,
+    "save_checkpoints" : true,
     "save_predictions" : false,
     "save_regressions" : false,
-    "save_loss"        : false,
+    "save_loss"        : true,
     
 
     "summary" : false,

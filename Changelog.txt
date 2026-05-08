@@ -81,4 +81,29 @@ En agregate_dataset se agregó un .iloc para compatibilizar mejor con python 3.1
 assembler.py:
 Se agregó el atributo y la entrada necesarios para poder procesar telescopios de tipo MST_NectarCam. Esta lógica se extendió a los archivos bmo.py, cnn_det.py y umonna.py
 
+7 Mayo 2026
 
+environment_py_3_10.yml:
+Archivo para crear el environment de trabajo con GPU con python 3.10.
+
+dataset.py:
+Se agregó código para cerrar el archivo tras extraer datos.
+
+generator.py:
+Se creó compatibilidad entre la randomización de índices y multiprocessing.
+
+cnn_det.py:
+Cambiado padding de la penúltima capa de convolución de "valid" a "same".
+
+generate_scalers.py:
+Programa nuevo para generar escalares para un dataset.
+
+camera.py:
+Limpieza de comentarios. quitado .to_numpy() a los índices de observación seleccionados.
+
+train_model.py:
+se agregó flag de environment para poder encontrar la libreria de cuda del equipo. Se agregaron parámetros de entrada para "use_multiprocessing", "workers" y "max_queue_size". Ahora estos parámetros deben ser entregados en el archivo de configuración del entrenamiento. Se cambió el formato de los checkpoints a SavedModel. Se guardará el modelo terminado tras el entrenamiento en la carpeta de output. No solo los checkpoints.
+
+Se generaron escalares compatibles con la nueva versión del environment para LST_LSTCam, MST_NectarCam y array. Los viejos se cambiaron a una carpeta de legado para la versión anterior.
+
+Se crearon archivos de configuración para entrenar las redes CNN_DET.

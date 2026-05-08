@@ -92,7 +92,7 @@ def cnn_det_unit(telescope, image_mode, image_mask, input_img_shape, input_featu
     front = Conv2D(name=f"encoder_conv_layer_compress",
                    filters=filters, kernel_size=kernel_size,
                    kernel_initializer="he_uniform",
-                   padding = "valid",
+                   padding = "same",
                    activation="relu",
                    kernel_regularizer=l2_(kernel_regularizer_l2),
                    activity_regularizer=l1_(activity_regularizer_l1))(front)

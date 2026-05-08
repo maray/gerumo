@@ -9,6 +9,9 @@ import time
 import os
 from os import path
 
+#utilizado para evitar un error de environment que no encuentra libdevice.10.bc
+os.environ['XLA_FLAGS'] = '--xla_gpu_cuda_data_dir=/usr/lib/cuda'
+
 import uuid
 from datetime import datetime
 import numpy as np
@@ -35,6 +38,9 @@ def train_model(model_name, model_constructor, assembler_constructor, model_extr
             target_mode = "lineal",
             targets = ["alt", "az", "log10_mc_energy"],
             target_mode_config = {},
+            use_multiprocessing = False,
+            workers = 5,
+            max_queue_size = 20,
             batch_size = 32,
             epochs = 3,
             loss = "crossentropy",
@@ -110,7 +116,7 @@ def train_model(model_name, model_constructor, assembler_constructor, model_extr
         checkpoint_folder = path.join(output_folder, 'checkpoints')
         os.makedirs(checkpoint_folder, exist_ok=False)
         
-        checkpoint_filepath = "%s_%s_%s_e{epoch:03d}_{val_loss:.4f}.h5"%(model_name, telescope, loss)
+        checkpoint_filepath = "%s_%s_%s_e{epoch:03d}_{val_loss:.4f}"%(model_name, telescope, loss)
         checkpoint_filepath = path.join(checkpoint_folder, checkpoint_filepath)
         callbacks.append(
             keras.callbacks.ModelCheckpoint(checkpoint_filepath, monitor='val_loss', 
@@ -226,6 +232,10 @@ def train_model(model_name, model_constructor, assembler_constructor, model_extr
     else:
         model.summary()
     ## fit
+    print("Use multiprocessing? ", use_multiprocessing)
+    print("Workers? ", workers)
+    print("Max queue size? ", max_queue_size)
+    print("Batch size? ", batch_size)
     start_time = time.time()
     history = model.fit(
         train_generator,
@@ -234,9 +244,9 @@ def train_model(model_name, model_constructor, assembler_constructor, model_extr
         validation_data = validation_generator,
         validation_steps = len(validation_generator),
         callbacks = callbacks,
-        use_multiprocessing = False,
-        workers = 5,
-        max_queue_size = 20,
+        use_multiprocessing = use_multiprocessing,
+        workers = workers,
+        max_queue_size = max_queue_size,
     )
     training_time = (time.time() - start_time)/60.0
     print(f"Training time: {training_time:.3f} [min]")
@@ -288,6 +298,9 @@ if __name__ == "__main__":
     target_mode = config["target_mode"]
     target_mode_config = get_target_mode_config(config, target_mode)
     # Training Parameters
+    use_multiprocessing = config["use_multiprocessing"]
+    workers = config["workers"]
+    max_queue_size = config["max_queue_size"]
     batch_size = config["batch_size"]
     epochs = config["epochs"]
     loss = config["loss"]
@@ -333,6 +346,9 @@ if __name__ == "__main__":
         # Target paramters
         target_mode, targets, target_mode_config, 
         # Training paramters
+        use_multiprocessing = use_multiprocessing,
+        workers = workers,
+        max_queue_size = max_queue_size,
         batch_size = batch_size,
         epochs = epochs, 
         loss = loss, 
@@ -352,3 +368,4 @@ if __name__ == "__main__":
         multi_gpu=multi_gpu,
         early_stop_patience=early_stop_patience
     )
+model.save(os.path.join(output_folder, f"{model_name}_model"))

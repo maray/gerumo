@@ -1,22 +1,22 @@
 {
-    "model_name": "UMONNA_UNIT_LST_DL1_V1",
+    "model_name": "UMONNA_UNIT_LST_LSTCam_DL1_V1",
     "model_constructor": "umonna_unit",
     "assembler_constructor": "umonna",
     "model_extra_params": {
         "latent_variables": 600
     },
     "telescope" : "LST_LSTCam",
-    "output_folder" : "./output",
+    "output_folder" : "./output/Training gamma-diffuse/UMONA_DET",
     
     "version": "DL1",
-    "train_events_csv"    : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/train_events.csv",
-    "train_telescope_csv" : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/train_telescopes.csv",
+    "train_events_csv"    : "../dataset/gamma-diffuse only/train_events.csv",
+    "train_telescope_csv" : "../dataset/gamma-diffuse only/train_telescopes.csv",
     "replace_folder_train" : null,
-    "validation_events_csv"    : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/validation_events.csv",
-    "validation_telescope_csv" : "/home/sven-klein-plarre/Documentos/Universidad/Magister/Tesis/Repositorio-GERUMO/gerumo/dataset/validation_telescopes.csv",
+    "validation_events_csv"    : "../dataset/gamma-diffuse only/validation_events.csv",
+    "validation_telescope_csv" : "../dataset/gamma-diffuse only/validation_telescopes.csv",
     "replace_folder_validation" : null,
-    "test_events_csv"    : "./datasets/test_events.csv",
-    "test_telescope_csv" : "./datasets/test_telescopes.csv",
+    "test_events_csv"    : "../dataset/gamma-diffuse only/test_events.csv",
+    "test_telescope_csv" : "../dataset/gamma-diffuse only/test_telescopes.csv",
     "replace_folder_test" : null,
     
     "input_image_mode" : "simple-shift",
@@ -49,7 +49,9 @@
         }
     },
 
-
+    "use_multiprocessing" : true,
+    "workers" : 8,
+    "max_queue_size" : 32,
     "batch_size" : 64,             
     "epochs" : 50,
     "loss" : "crossentropy",

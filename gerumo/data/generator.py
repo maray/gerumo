@@ -61,6 +61,8 @@ class AssemblerUnitGenerator(keras.utils.Sequence):
         
         # Shuffle dataset
         self.shuffle = shuffle
+        self.indexes_next = None
+        self.indexes = None
         if shuffle:
             self.datasets_by_file = { f: [] for f in self.dataset["hdf5_filepath"].unique()}
             for i, (_, row) in enumerate(self.dataset.iterrows()):
@@ -97,14 +99,17 @@ class AssemblerUnitGenerator(keras.utils.Sequence):
     def on_epoch_end(self):
         'Updates indexes after each epoch'
         if self.shuffle:
-            self.indexes = np.empty(self.size, dtype=np.uint)
+            self.indexes = self.indexes_next
+            self.indexes_next = np.empty(self.size, dtype=np.uint)
             files = utils.shuffle(list(self.datasets_by_file.keys()))
             start = 0
             for f in files:
                 rows = utils.shuffle(self.datasets_by_file[f])
                 end = len(rows) + start
-                self.indexes[start:end] = rows
+                self.indexes_next[start:end] = rows
                 start = end
+            if self.indexes is None:
+                self.indexes = np.arange(self.size)
         else:
             self.indexes = np.arange(self.size)
 

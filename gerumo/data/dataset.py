@@ -288,10 +288,7 @@ def extract_data(hdf5_filepath, n_file, version='ML2'):
                             break
                     if telescope_type is None:
                         continue
-                    #images_table = hdf5_file.root.dl1.event.telescope.images[f'tel_{tel_id:03d}']
-                    #key_index_list = build_table_index(images_table)
                     image_index = key_index_telescope_events[tel_id][(event["obs_id"],event["event_id"],tel_id)]
-                    #image_index = images_table.get_where_list(f'(obs_id == {event["obs_id"]}) & (event_id == {event["event_id"]})')
                     telescope_data = dict(
                         telescope_id=tel_id,
                         image_index = image_index,
@@ -313,6 +310,7 @@ def extract_data(hdf5_filepath, n_file, version='ML2'):
     finally:
         logging.debug(f"Total events: {len(events_data)}")
         logging.debug(f"Total observations: {len(telescopes_data)}")
+    hdf5_file.close()
 
     return events_data, telescopes_data
 
