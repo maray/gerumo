@@ -273,7 +273,7 @@ def umonna_unit(telescope, image_mode, image_mask, input_img_shape, input_featur
 class Umonna(ModelAssembler):
     def __init__(self, sst1m_model_or_path=None, mst_model_or_path=None, mst_nectar_model_or_path = None, lst_model_or_path=None,
                  targets=[], target_domains=tuple(), target_resolutions=tuple(), target_shapes=(),
-                 assembler_mode="normalized_product", point_estimation_mode="expected_value", custom_objects=CUSTOM_OBJECTS):
+                 assembler_mode=None, point_estimation_mode="expected_value", custom_objects=CUSTOM_OBJECTS):
         super().__init__(sst1m_model_or_path=sst1m_model_or_path, mst_model_or_path=mst_model_or_path, mst_nectar_model_or_path = mst_nectar_model_or_path, lst_model_or_path=lst_model_or_path,
                          targets=targets, target_domains=target_domains, target_shapes=target_shapes, custom_objects=custom_objects)
         if assembler_mode not in (None, "normalized_product_for_angles", "normalized_product_for_energy"):
@@ -371,6 +371,8 @@ class Umonna(ModelAssembler):
         return y_point_estimations
 
     def assemble(self, y_i_by_telescope, **kwargs):
+        if self.assemble_mode == None:
+            raise ValueError("Error: assemble_mode was None. Expected normalized_product_for_angles or normalized_product_for_energy.")
         y_i_all = np.concatenate(list(y_i_by_telescope.values()))
         if self.assemble_mode == "normalized_product_for_angles":
             yi_assembled = self.normalized_product(y_i_all)
