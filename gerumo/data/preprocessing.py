@@ -1,6 +1,6 @@
 from ctapipe.image import tailcuts_clean, dilate
 from joblib import load
-from . import load_camera_geometry
+from . import load_camera_geometry, TELESCOPES_INVERSE_ALIAS
 from os.path import join, exists, dirname
 import numpy as np
 
@@ -55,8 +55,8 @@ class CameraPipe():
 
 
 class MultiCameraPipe():
-    def __init__(self, SST1M_DigiCam=None, MST_FlashCam=None, LST_LSTCam=None, version="ML1"):
-        assert not ((SST1M_DigiCam is None) and (MST_FlashCam is None) and (LST_LSTCam is None)), "No Pipes given" 
+    def __init__(self, SST1M_DigiCam=None, MST_FlashCam=None, MST_NectarCam = None, LST_LSTCam=None, version="ML1"):
+        assert not ((SST1M_DigiCam is None) and (MST_FlashCam is None) and (MST_NectarCam is None) and (LST_LSTCam is None)), "No Pipes given" 
         # Camera Pipes and telescope type supported
         self.camera_pipes = {}
         self.telescopes = []
@@ -65,6 +65,8 @@ class MultiCameraPipe():
         self.load_camera_pipe("SST1M_DigiCam", SST1M_DigiCam, version)
         # Load MST CameraPipe
         self.load_camera_pipe("MST_FlashCam", MST_FlashCam, version)
+        # Load MST_NectarCam CameraPipe
+        self.load_camera_pipe("MST_NectarCam", MST_NectarCam, version)
         # Load LST CameraPipe
         self.load_camera_pipe("LST_LSTCam", LST_LSTCam, version)
         
@@ -100,6 +102,8 @@ class MultiCameraPipe():
         indices_by_telescope = {t:[] for t in self.telescopes}
         try:
             for i, (camera, telescope) in enumerate(zip(cameras, telescopes)):
+                if self.version == "DL1":
+                    telescope = TELESCOPES_INVERSE_ALIAS[telescope]
                 camera_by_telescope[telescope].append(camera)
                 indices_by_telescope[telescope].append(i)
         except KeyError as err:

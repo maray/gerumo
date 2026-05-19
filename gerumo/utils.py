@@ -8,6 +8,7 @@ from .data.generator import AssemblerUnitGenerator, AssemblerGenerator
 from .data.preprocessing import MultiCameraPipe, CameraPipe, TelescopeFeaturesPipe
 from tensorflow.keras.models import load_model
 from .models import MODELS, ASSEMBLERS, CUSTOM_OBJECTS
+from . import TELESCOPES_ALIAS
 
 
 __all__ = [
@@ -130,7 +131,7 @@ def load_dataset_from_configuration(config_file, include_samples_dataset=False,
     if include_samples_dataset:
         # events with observations of every type of telescopes
         if sample_events is None:
-            sample_telescopes = [telescope]
+            sample_telescopes = [TELESCOPES_ALIAS[version][telescope]]
             sample_events = [e for e, df in dataset.groupby("event_unique_id") if __same_telescopes(df["type"].unique(), sample_telescopes)]
             # TODO: add custom seed
             r = np.random.RandomState(42)
@@ -229,7 +230,8 @@ def load_dataset_from_assembler_configuration(assembler_config_file, include_sam
     dataset = aggregate_dataset(dataset, az=True, log10_mc_energy=True)
     if include_samples_dataset:
         # events with observations of every type of telescopes
-        sample_telescopes = [t for t in telescopes.keys()]
+        sample_telescopes = [TELESCOPES_ALIAS[version][t] for t in telescopes.keys()]
+        sample_telescopes = tuple(sample_telescopes)
         sample_events = [e for e, df in dataset.groupby("event_unique_id") if __same_telescopes(df["type"].unique(), sample_telescopes)]
         # TODO: add custom seed
         r = np.random.RandomState(42)
@@ -314,9 +316,11 @@ def load_model_from_experiment(experiment_folder, custom_objects=CUSTOM_OBJECTS,
     `pd.DataFrame`
         Evaluation results.
     """
-    # Load experiment data
+    # Load experiment data. compatible with .h5 and SavedModel formats
     experiment_name = path.basename(experiment_folder)
-    checkpoints = glob(path.join(experiment_folder, "checkpoints", "*.h5"))
+    checkpoints = []
+    checkpoints.extend(glob(path.join(experiment_folder, "checkpoints", "*.h5")))
+    checkpoints.extend(glob(path.join(experiment_folder, "checkpoints", "*/")))
     checkpoints_by_epochs = {
         int(epoch[-2][1:]) - 1: "_".join(epoch) for epoch in map(lambda s: s.split("_"), checkpoints)
     }

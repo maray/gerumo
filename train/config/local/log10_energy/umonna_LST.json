@@ -1,12 +1,12 @@
 {
-    "model_name": "CNN_DET_UNIT_MST_NectarCam_DL1_V1",
-    "model_constructor": "cnn_det_unit",
-    "assembler_constructor": "cnn_det",
+    "model_name": "UMONNA_UNIT_LST_LSTCam_DL1_V1_log10_energy",
+    "model_constructor": "umonna_unit",
+    "assembler_constructor": "umonna",
     "model_extra_params": {
         "latent_variables": 600
     },
-    "telescope" : "MST_NectarCam",
-    "output_folder" : "./output/Training gamma-diffuse/CNN-DET",
+    "telescope" : "LST_LSTCam",
+    "output_folder" : "./output/Training gamma-diffuse/UMONA_DET/log10_energy",
     
     "version": "DL1",
     "train_events_csv"    : "../dataset/gamma-diffuse only/train_events.csv",
@@ -24,8 +24,8 @@
     "min_observations" : 1,
     "input_features" : ["x", "y"],
     
-    "targets" : ["alt", "az"],
-    "target_mode" : "lineal",
+    "targets" : ["log10_mc_energy"],
+    "target_mode" : "one_cell",
     "target_shapes" : {
         "alt": 81, 
         "az": 81, 
@@ -41,7 +41,7 @@
     "preprocessing": {
         "CameraPipe" : {
             "charge_scaler_value" : 62.652400970459,
-            "peak_scaler_path" : "DL1_MST_NectarCam_peak_scaler",
+            "peak_scaler_path" : "DL1_LST_LSTCam_peak_scaler",
             "tailcuts_clean_params": {"boundary_thresh": 6, "picture_thresh": 14}
         },
         "TelescopeFeaturesPipe": {
@@ -50,15 +50,18 @@
     },
 
     "use_multiprocessing" : false,
-    "workers" : 10,
-    "max_queue_size" : 8,
+    "workers" : 8,
+    "max_queue_size" : 32,
     "batch_size" : 128,             
     "epochs" : 50,
-    "loss" : "mse",
+    "loss" : "crossentropy",
     "optimizer": {
         "learning_rate": 1e-3,
-        "name": "adam",
-        "extra_parameters": null
+        "name": "sgd",
+        "extra_parameters": {
+            "momentum": 0.01,
+            "nesterov": true
+        }
     },
   
     "save_checkpoints" : true,

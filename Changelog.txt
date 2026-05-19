@@ -107,3 +107,31 @@ se agregó flag de environment para poder encontrar la libreria de cuda del equi
 Se generaron escalares compatibles con la nueva versión del environment para LST_LSTCam, MST_NectarCam y array. Los viejos se cambiaron a una carpeta de legado para la versión anterior.
 
 Se crearon archivos de configuración para entrenar las redes CNN_DET.
+
+19 Mayo 2026
+
+utils.py:
+Compatibilidad con DL1 en la carga del modelo en load_dataset_from_configuration y load_dataset_from_assembler_configuration. Agregada compatibilidad con formato SavedModel en load_model_from_experiment.
+
+dataset.py:
+filter_dataset ahora es capaz de traducir nombres provenientes de un arreglo y no solo de string.
+
+generator.py:
+el método __data_generator de AssemblerGenerator ahora es compatible con DL1.
+
+preprocesing.py:
+Se le agregó a MultiCameraPipe compatibilidad con DL1 y MST_NectarCam.
+
+assembler.py:
+ModelAssembler compatible con el formato SavedModel.
+
+umonna.py:
+Reparado un error que evaluaba el modelo de ángulos de manera equivocada. el parámetro assembler_mode ahora debe ser "normalized_product_for_angles" o "normalized_product_for_energy" dependiendo del tipo de red que se esté entrenando.
+
+metrics.py:
+Solucionado un problema de compatibilidad entre las versiones utilizadas de ctaplot y numpy.
+
+evaluate.py:
+Agregada compatibilidad con archivos SavedModel. Agregada flag para encontrar la libreria CUDDN en el equipo fuera del environment de gerumo.
+
+Agregados y ordenados archivos de configuración para el entrenamiento de al_az y energy.

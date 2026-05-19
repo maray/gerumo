@@ -580,6 +580,12 @@ def filter_dataset(dataset, version, telescopes=[], number_of_observations=[], d
     """
     if isinstance(telescopes, str):
         telescopes = [TELESCOPES_ALIAS[version][telescopes]]
+    else:
+        telescopes_temp = [None]*len(telescopes)
+        for i, t in enumerate(telescopes):
+            telescopes_temp[i] = TELESCOPES_ALIAS[version][t]
+        telescopes = telescopes_temp
+
     if isinstance(number_of_observations, int):
         number_of_observations = [number_of_observations]
 

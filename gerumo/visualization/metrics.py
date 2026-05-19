@@ -15,6 +15,10 @@ import seaborn as sns
 from scipy.stats import norm, multivariate_normal, rv_continuous, gaussian_kde
 from scipy.stats._multivariate import multivariate_normal_frozen
 import numpy as np
+
+#parche para reparar ctaplot intentando convertir ndarray a int en show_absolute_error_angular
+np.int = int
+
 import pandas as pd
 import ctaplot
 from sklearn.metrics import r2_score

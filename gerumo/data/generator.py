@@ -9,7 +9,8 @@ models, with their defined input format.
 from tensorflow import keras
 import numpy as np
 from sklearn import utils
-from . import load_cameras, cameras_to_images, targets_to_matrix
+#import tables
+from . import load_cameras, cameras_to_images, targets_to_matrix, TELESCOPES_INVERSE_ALIAS
 
 
 __all__ = ['AssemblerUnitGenerator', 'AssemblerGenerator']
@@ -37,6 +38,9 @@ class AssemblerUnitGenerator(keras.utils.Sequence):
         self.dataset = dataset
         self.telescope_type = dataset.iloc[0].type
 
+        #file handlers for workers
+#        self.file_handlers = {}
+
         # How to generate input image
         self.input_image_mode = input_image_mode
         self.input_image_mask = input_image_mask
@@ -62,7 +66,6 @@ class AssemblerUnitGenerator(keras.utils.Sequence):
         # Shuffle dataset
         self.shuffle = shuffle
         self.indexes_next = None
-        self.indexes = None
         if shuffle:
             self.datasets_by_file = { f: [] for f in self.dataset["hdf5_filepath"].unique()}
             for i, (_, row) in enumerate(self.dataset.iterrows()):
@@ -95,6 +98,14 @@ class AssemblerUnitGenerator(keras.utils.Sequence):
         
         else:
             return X, y
+        
+#    def __del__(self):
+#        "when deleting the generator in each worker, the handlers are closed"
+#        for f in self.file_handlers.values():
+#            try:
+#                f.close()
+#            except:
+#                pass
 
     def on_epoch_end(self):
         'Updates indexes after each epoch'
@@ -124,6 +135,8 @@ class AssemblerUnitGenerator(keras.utils.Sequence):
 
         y : (n_samples, *target_dim)
         """
+#        if len(self.file_handlers) < 1:
+#            self.generate_file_handlers()
         batch_dataset = self.dataset.iloc[list_indexes]
         # dataset contains only one telescope type
         telescope_types = [self.telescope_type]*len(batch_dataset)
@@ -175,6 +188,13 @@ class AssemblerUnitGenerator(keras.utils.Sequence):
             meta["true_energy"] = batch_dataset.mc_energy.to_numpy()
 
         return meta
+    
+#    def generate_file_handlers(self):
+#        "permanent file handler for each worker"
+#        filepaths = self.dataset["hdf5_filepath"].unique()
+#        for filepath in filepaths:
+#            self.file_handlers[filepath] = tables.open_file(filepath, mode="r")
+#        return self.file_handlers
 
 
 class AssemblerGenerator(keras.utils.Sequence):
@@ -333,6 +353,9 @@ class AssemblerGenerator(keras.utils.Sequence):
                 event_telescopes_features = self.preprocess_input_pipes["TelescopeFeaturesPipe"](event_telescopes_features)
 
             # Build Batch
+            if self.version == "DL1":
+                for i, t in enumerate(telescope_types):
+                    telescope_types[i] = TELESCOPES_INVERSE_ALIAS[t]
             event_by_telescope = {}
             for telescope_type in self.telescope_types:
                 telescope_indices = [i for i, t in enumerate(telescope_types) if t == telescope_type]

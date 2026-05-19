@@ -1,12 +1,12 @@
 {
-    "model_name": "CNN_DET_UNIT_MST_NectarCam_DL1_V1",
+    "model_name": "CNN_DET_UNIT_MST_NectarCam_DL1_V1_log10_energy",
     "model_constructor": "cnn_det_unit",
     "assembler_constructor": "cnn_det",
     "model_extra_params": {
         "latent_variables": 600
     },
     "telescope" : "MST_NectarCam",
-    "output_folder" : "./output/Training gamma-diffuse/CNN-DET",
+    "output_folder" : "./output/Training gamma-diffuse/CNN-DET/log10_energy",
     
     "version": "DL1",
     "train_events_csv"    : "../dataset/gamma-diffuse only/train_events.csv",
@@ -24,7 +24,7 @@
     "min_observations" : 1,
     "input_features" : ["x", "y"],
     
-    "targets" : ["alt", "az"],
+    "targets" : ["log10_mc_energy"],
     "target_mode" : "lineal",
     "target_shapes" : {
         "alt": 81, 

@@ -276,7 +276,7 @@ class Umonna(ModelAssembler):
                  assembler_mode="normalized_product", point_estimation_mode="expected_value", custom_objects=CUSTOM_OBJECTS):
         super().__init__(sst1m_model_or_path=sst1m_model_or_path, mst_model_or_path=mst_model_or_path, mst_nectar_model_or_path = mst_nectar_model_or_path, lst_model_or_path=lst_model_or_path,
                          targets=targets, target_domains=target_domains, target_shapes=target_shapes, custom_objects=custom_objects)
-        if assembler_mode not in (None, "normalized_product"):
+        if assembler_mode not in (None, "normalized_product_for_angles", "normalized_product_for_energy"):
             raise ValueError(f"Invalid assembler_mode: {assembler_mode}")
         self.assemble_mode = assembler_mode or "normalized_product"
         
@@ -372,9 +372,9 @@ class Umonna(ModelAssembler):
 
     def assemble(self, y_i_by_telescope, **kwargs):
         y_i_all = np.concatenate(list(y_i_by_telescope.values()))
-        if self.assemble_mode == "normalized_product":
-            #yi_assembled = self.normalized_product(y_i_all)
-            #elif self.assemble_mode == "normalized_product_with_prior":
+        if self.assemble_mode == "normalized_product_for_angles":
+            yi_assembled = self.normalized_product(y_i_all)
+        elif self.assemble_mode == "normalized_product_for_energy":
             yi_assembled = self.normalized_product_with_prior(y_i_all)
         return yi_assembled
         

@@ -104,7 +104,10 @@ class ModelAssembler():
                 if path.isdir(model_or_path):
                     # Load experiment data
                     experiment_name = path.basename(model_or_path)
-                    checkpoints = glob(path.join(model_or_path, "checkpoints", "*.h5"))
+                    checkpoints = []
+                    checkpoints.extend(glob(path.join(model_or_path, "checkpoints", "*.h5")))
+                    checkpoints.extend(glob(path.join(model_or_path, "checkpoints", "*/")))
+                    #checkpoints = glob(path.join(model_or_path, "checkpoints", "*.h5"))
                     checkpoints_by_epochs = {int(epoch[-2][1:]) - 1: "_".join(epoch) for epoch in map(lambda s: s.split("_"), checkpoints)}
                     if epoch is None:
                         epoch = max(checkpoints_by_epochs.keys())

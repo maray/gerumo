@@ -49,10 +49,10 @@
         }
     },
 
-    "use_multiprocessing" : true,
+    "use_multiprocessing" : false,
     "workers" : 8,
     "max_queue_size" : 32,
-    "batch_size" : 64,             
+    "batch_size" : 128,             
     "epochs" : 50,
     "loss" : "crossentropy",
     "optimizer": {
@@ -64,10 +64,10 @@
         }
     },
   
-    "save_checkpoints" : false,
+    "save_checkpoints" : true,
     "save_predictions" : false,
     "save_regressions" : false,
-    "save_loss"        : false,
+    "save_loss"        : true,
     
 
     "summary" : false,

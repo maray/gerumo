@@ -21,6 +21,7 @@ import tensorflow_probability as tfp
 import matplotlib as mpl
 mpl.use('Agg')
 
+os.environ['XLA_FLAGS'] = '--xla_gpu_cuda_data_dir=/usr/lib/cuda'
 
 def same_telescopes(src_telescopes, sample_telescopes):
     return set(sample_telescopes).issubset(set(src_telescopes))
@@ -58,7 +59,10 @@ def evaluate_experiment_folder(experiment_folder,  save_results=True, save_predi
     """
     # Load experiment data
     experiment_name = path.basename(experiment_folder)
-    checkpoints = glob(join(experiment_folder, "checkpoints", "*.h5"))
+    checkpoints = []
+    checkpoints.extend(glob(join(experiment_folder, "checkpoints", "*.h5")))
+    checkpoints.extend(glob(join(experiment_folder, "checkpoints", "*/")))
+    #checkpoints = glob(join(experiment_folder, "checkpoints", "*.h5"))
     checkpoints_by_epochs = {int(epoch[-2][1:]) - 1: "_".join(epoch) for epoch in map(lambda s: s.split("_"), checkpoints)}
     if epoch is None:
         epoch = max(checkpoints_by_epochs.keys())
