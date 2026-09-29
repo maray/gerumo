@@ -89,6 +89,7 @@ def load_cameras(dataset, version="ML1"):
         for hdf5_filepath in hdf5_filepaths:
             #with tables.open_file(hdf5_filepath, "r") as hdf5_file:
             hdf5_file = synchronized_open_file(hdf5_filepath, mode="r")
+#            hdf5_file = file_handlers[hdf5_filepath]
             # and over telescope tables
             for tel_id in tel_ids:
                 # select indices for this file and telescope needs the double filter

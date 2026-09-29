@@ -387,6 +387,7 @@ class AssemblerGenerator(keras.utils.Sequence):
         meta : {
             "event_id"    : event id, for identify each plot
             "true_energy" : value of mc_energy in TeV for ploting angular resolution
+            activated_telescopes : Array of the ids of activated telescopes for each event
         }
         """
                 # Initialization
@@ -399,5 +400,11 @@ class AssemblerGenerator(keras.utils.Sequence):
         if self.include_true_energy:
             grouped_mc_energy = self.dataset.mc_energy
             meta["true_energy"] = np.array([grouped_mc_energy.get_group(event).iloc[0] for event in batch_events])
+
+        grouped_activated_telescope = self.dataset.telescope_id
+        activated_telescopes = []
+        for event in batch_events:
+            activated_telescopes.append(np.array(grouped_activated_telescope.get_group(event)))
+        meta["activated_telescopes"] = activated_telescopes
 
         return meta

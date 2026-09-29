@@ -15,6 +15,9 @@ import seaborn as sns
 from scipy.stats import norm, multivariate_normal, rv_continuous, gaussian_kde
 from scipy.stats._multivariate import multivariate_normal_frozen
 import numpy as np
+from matplotlib.lines import Line2D
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
 
 #parche para reparar ctaplot intentando convertir ndarray a int en show_absolute_error_angular
 np.int = int
@@ -142,8 +145,8 @@ def _label_formater(target, use_degrees=False, only_units=False):
         return f"{target} {units[target]}"
 
 
-def plot_prediction(prediction, prediction_point, targets, target_domains,
-                              target_resolutions=None,  title=None, targets_values=None,
+def plot_prediction(prediction, prediction_point, targets, target_domains, variance = None, covariance = None, intensity = None,
+                              target_resolutions=None,  title=None, telescope_names = None, targets_values=None,
                               save_to=None):
     """
     Display the assembled prediction of a event, the probability and the predicted point.
@@ -151,8 +154,14 @@ def plot_prediction(prediction, prediction_point, targets, target_domains,
     """
 
     # Create new Figure
-    plt.figure(figsize=(8,8))
-    ax = plt.gca()
+    if variance is None:
+        plt.figure(figsize=(8,8))
+        ax = plt.gca()
+    elif len(target_domains) == 2:
+        fig = plt.figure(figsize=(8,8))
+        ax = fig.add_subplot(projection='3d')
+    else:
+        raise NotImplementedError
     
     if isinstance(target_domains, dict):
         target_domains = [[target_domains[t][0],target_domains[t][1]] for t in targets]
@@ -160,15 +169,26 @@ def plot_prediction(prediction, prediction_point, targets, target_domains,
 
     # Style
     if isinstance(title, str):
-        title = f"Prediction for event {title}"
+        title = f"Prediction for Event {title}"
     elif isinstance(title, tuple):
-        title = f"Prediction for event {title[0]}\ntelescope id {title[1]}"
+        if variance is None:
+            title = f"Prediction for Event {title[0]}\nTelescope ID {title[1]}"
+        else:
+            activated_telescopes = title[1]
+            title = f"Prediction for Event {title[0]}\nWith {np.sum(title[1])} Activated Telescopes"
     else:
-        title = f"Prediction for a event"
+        title = f"Prediction for an Event"
     plt.title(title)
 
     # point estimator
-    if np.array_equal(prediction, prediction_point):
+    if variance is not None:
+        if len(targets) == 1:
+            ax = show_gaussian_prediction_1d(prediction, prediction_point, variance, intensity, activated_telescopes, targets, target_domains, telescope_names, targets_values, ax)
+        elif(len(targets) == 2):
+            ax = show_gaussian_prediction_2d(prediction, prediction_point, variance, covariance, intensity, activated_telescopes, targets, target_domains, telescope_names, targets_values, ax)
+        else:
+            raise NotImplementedError
+    elif np.array_equal(prediction, prediction_point):
         if len(targets) == 1:
             ax = show_points_1d(prediction, prediction_point, targets, target_domains, targets_values, ax)
         elif len(targets) == 2:
@@ -313,6 +333,390 @@ def plot_multi_stereo_prediction(event_index,
         pass
     else:
         plt.show()
+
+"""
+Standard deviation predictions
+"""
+def show_gaussian_prediction_1d(prediction, prediction_point, variance, intensity, num_activated_telescopes, targets, target_domains, telescope_names, targets_values=None, axis=None):
+    if axis is None:
+        plt.figure(figsize=(8,8))
+        axis = plt.gca()
+    if isinstance(target_domains, dict):
+        target_domains = [[target_domains[t][0],target_domains[t][1]] for t in targets]
+    
+    if variance == 0:
+        x1=np.linspace(target_domains[0][0], prediction_point[0], 501)
+        x2=np.linspace(prediction_point[0], target_domains[0][1], 500)[1:]
+        y1=np.zeros_like(x1)
+        y1[-1] = 1
+        y2=np.zeros_like(x2) 
+        y = np.hstack((y1, y2))
+        x = np.hstack((x1,x2))
+    else:
+        x = np.linspace(target_domains[0][0],target_domains[0][1],1000)
+        y = norm.pdf(x, loc = prediction_point, scale = np.sqrt(variance[0]))#solucion temporal para varianza. actualizar para multiples telescopios
+    axis.plot(x, y, "-",color="blue", alpha=0.9)
+
+    # Add predicted point
+    axis.axvline(x=prediction_point, c="white", linestyle="--", linewidth=3,
+                 label=f"prediction=({prediction_point[0]:.4f})", alpha=0.9)
+    # Add target point
+    if targets_values is not None:
+      axis.axvline(x=targets_values[0], linestyle="--", c="black", linewidth=3,
+                   label=f"target=({targets_values[0]:.4f})", alpha=0.9)
+
+    # Style
+    axis.set_facecolor('lightgrey')
+    axis.set_xlim(target_domains[0])
+    axis.set_xlabel(_label_formater(targets[0]))
+    axis.legend()
+    return axis
+
+def show_gaussian_prediction_2d(prediction, prediction_point, variance, covariance, intensity, num_activated_telescopes, targets, target_domains, telescope_names, targets_values=None, axis=None):
+    #pred points: [LST_alt, LST_az, MST_alt, MST_az]
+    #variance : [[LST_alt, LST_az],[MST_alt_MST_az]]
+    #covariance: [LST, MST]
+    #intensity : [LST, MST]
+    #targets : ["alt", "az"]
+    #telescope_names ["LST, MST"]
+    #targets_values : ["true_alt", "true_az"]
+    if axis is None:
+        fig = plt.figure(figsize=(10, 9))
+        axis = fig.add_subplot(projection='3d')
+    
+    if isinstance(target_domains, dict):
+        target_domains = [
+            [target_domains[t][0], target_domains[t][1]]
+            for t in targets
+        ]
+    
+    # Variable domain
+    x = np.linspace(
+        target_domains[0][0],
+        target_domains[0][1],
+        300
+    )
+    
+    y = np.linspace(
+        target_domains[1][0],
+        target_domains[1][1],
+        300
+    )
+    
+    x, y = np.meshgrid(x, y)
+
+    prediction_point = np.asarray(prediction_point, dtype=float)
+    variance = np.asarray(variance, dtype=float)
+    covariance = np.asarray(covariance, dtype=float)
+    intensity = np.asarray(intensity, dtype=float)
+    
+    n_telescopes = len(telescope_names)
+
+    valid_telescopes = []
+    single_measure_telescopes = []
+    #setting up the collor palette
+    colors = cm.Set1(np.linspace(0,1,9))#9 colors to choose, 1 is reserved for results, 2 for average prediction
+    color_select = 2
+    
+    for i in range(n_telescopes):
+        if intensity[i] <= 0:
+            continue
+
+        if variance[i][0] <= 0 or variance[i][1] <= 0:
+            single_measure_telescopes.append(i)
+            continue
+    
+        valid_telescopes.append(i)
+    
+    if len(valid_telescopes) == 0:
+        if len(single_measure_telescopes) == 0:
+            raise ValueError(
+                "There aren't any valid telescope measurements."
+            )
+        z = np.full_like(x, 0)
+        axis.plot_surface(
+        x,
+        y,
+        z,
+        cmap="viridis",
+        alpha=0.65,
+        linewidth=0,
+        antialiased=True
+    )
+        telescope_handles = []
+        for i in single_measure_telescopes:
+            axis.scatter(
+                prediction_point[2 * i],
+                prediction_point[2 * i + 1],
+                0,
+                s=120,
+                marker='o',
+                c=colors[color_select],
+            )
+            telescope_handles.append(
+                Line2D(
+                    [0],
+                    [0],
+                    marker='o',
+                    linestyle='',
+                    markersize=8,
+                    c=colors[color_select],
+                    label=f"{telescope_names[i]} 1 activated"
+                )
+            )
+            color_select += 1
+        if targets_values is not None:
+            axis.scatter(
+                targets_values[0],
+                targets_values[1],
+                0,
+                s=120,
+                marker='X',
+                c='r',
+                label='Ground truth'
+            )
+        axis.set_xlabel(targets[0])
+        axis.set_ylabel(targets[1])
+        axis.set_zlabel("Probability density")
+        
+        handles, labels = axis.get_legend_handles_labels()
+        
+        axis.legend(
+            handles + telescope_handles,
+            labels + [h.get_label() for h in telescope_handles],
+            loc='upper right'
+        )
+        return axis
+
+    total_intensity = np.sum(
+        intensity[valid_telescopes]
+    )
+    
+    weights = {
+        i: intensity[i] / total_intensity
+        for i in valid_telescopes
+    }
+
+    mu_total = np.zeros(2)
+    
+    for i in valid_telescopes:
+        mu_i = np.array([
+            prediction_point[2 * i],
+            prediction_point[2 * i + 1]
+        ])    
+        mu_total += weights[i] * mu_i
+    
+    covariance_total = np.zeros((2, 2))    
+    telescope_covariances = {}
+    
+    for i in valid_telescopes:
+        sigma_i = np.array([
+            [variance[i][0], covariance[i]],
+            [covariance[i], variance[i][1]]
+        ])    
+        telescope_covariances[i] = sigma_i
+    
+        covariance_total += (
+            weights[i] ** 2
+            * sigma_i
+        )
+    
+    # ------------------------------------------------------------
+    # Create total distribution
+    # ------------------------------------------------------------    
+    gaussian_total = multivariate_normal(
+        mean=mu_total,
+        cov=covariance_total,
+        allow_singular=True
+    )
+    
+    positions = np.empty(x.shape + (2,))
+    positions[:, :, 0] = x
+    positions[:, :, 1] = y
+    probability_total = gaussian_total.pdf(positions)
+    
+    # ------------------------------------------------------------
+    # Plot total distribution
+    # ------------------------------------------------------------
+    surface = axis.plot_surface(
+        x,
+        y,
+        probability_total,
+        cmap="viridis",
+        alpha=0.65,
+        linewidth=0,
+        antialiased=True
+    )
+    
+    # ------------------------------------------------------------
+    # Curvas de nivel de la distribución total
+    # ------------------------------------------------------------
+    
+    # Se proyectan ligeramente por encima de z=0 para poder
+    # observar claramente la extensión de la distribución.
+    max_probability = np.max(probability_total)
+    axis.contour(
+        x,
+        y,
+        probability_total,
+        levels=8,
+        zdir='z',
+        offset=0,
+        cmap="viridis"
+    )
+    
+        # ------------------------------------------------------------
+        # Plot each telescope
+        # ------------------------------------------------------------
+    telescope_handles = []
+    prob_max = 0
+    
+    for i in valid_telescopes:
+        mu_i = np.array([
+            prediction_point[2 * i],
+            prediction_point[2 * i + 1]
+        ])
+    
+        sigma_i = telescope_covariances[i]
+    
+        gaussian_i = multivariate_normal(
+            mean=mu_i,
+            cov=sigma_i,
+            allow_singular=True
+        )
+    
+        probability_i = gaussian_i.pdf(positions)
+        axis.plot_surface(
+            x,
+            y,
+            probability_i,
+            cmap="plasma",
+            alpha=0.20,
+            linewidth=0,
+            antialiased=True
+        )
+    
+        z_i = gaussian_i.pdf(mu_i)
+        prob_max = np.max(np.array([prob_max,z_i]))
+        axis.scatter(
+            mu_i[0],
+            mu_i[1],
+            z_i,
+            s=70,
+            marker='o',
+            c=colors[color_select]
+        )
+      
+        axis.contour(
+            x,
+            y,
+            probability_i,
+            levels=5,
+            zdir='z',
+            offset=0,
+            cmap="plasma",
+            alpha=0.7
+        )
+    
+        telescope_handles.append(
+            Line2D(
+                [0],
+                [0],
+                marker='o',
+                linestyle='',
+                markersize=8,
+                c=colors[color_select],
+                label=f"{telescope_names[i]} {num_activated_telescopes[i]} activated"
+            )
+        )
+        color_select += 1
+    
+        #Single measure telescopes
+        for i in single_measure_telescopes:
+            x_pred = prediction_point[2 * i]
+            y_pred = prediction_point[2 * i + 1]
+            #z_i = gaussian_total.pdf(np.array([x, y]))
+            axis.scatter(
+                x_pred,
+                y_pred,
+                prob_max,
+                s=70,
+                marker='o',
+                c=colors[color_select]
+            )
+            axis.plot(
+                [x_pred, x_pred],
+                [y_pred, y_pred],
+                [0, prob_max],
+                linewidth = 3,
+                c=colors[color_select]
+            )
+            telescope_handles.append(
+                Line2D(
+                    [0],
+                    [0],
+                    marker='o',
+                    linestyle='',
+                    markersize=8,
+                    c=colors[color_select],
+                    label=f"{telescope_names[i]} {num_activated_telescopes[i]} activated"
+                )
+            )
+            color_select += 1
+        
+    # ------------------------------------------------------------
+    # Predicción total
+    # ------------------------------------------------------------
+    z_total = gaussian_total.pdf(mu_total)
+    axis.scatter(
+        mu_total[0],
+        mu_total[1],
+        z_total,
+        s=130,
+        marker='*',
+        c='b',
+        label='Combined prediction'
+    )
+    
+    # ------------------------------------------------------------
+    # Ground truth
+    # ------------------------------------------------------------
+    if targets_values is not None:
+        targets_values = np.asarray(
+            targets_values,
+            dtype=float
+        )
+    
+            #z_truth = gaussian_total.pdf(targets_values)
+        axis.scatter(
+            targets_values[0],
+            targets_values[1],
+            prob_max,
+            s=120,
+            marker='X',
+            c='r',
+            label='Ground truth'
+        )
+    
+        axis.plot(
+            [targets_values[0], targets_values[0]],
+            [targets_values[1], targets_values[1]],
+            [0, prob_max],
+            linewidth = 5,
+            c='r'
+        )
+
+    axis.set_xlabel(targets[0])
+    axis.set_ylabel(targets[1])
+    axis.set_zlabel("Probability density")
+
+    handles, labels = axis.get_legend_handles_labels()
+    axis.legend(
+        handles + telescope_handles,
+        labels + [h.get_label() for h in telescope_handles],
+        loc='upper right'
+    )
+    return axis
 
 
 """

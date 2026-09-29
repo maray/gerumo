@@ -1,4 +1,4 @@
-name: gerumo
+name: gerumo_cpu
 channels:
   - cta-observatory
   - defaults

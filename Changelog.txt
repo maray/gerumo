@@ -135,3 +135,41 @@ evaluate.py:
 Agregada compatibilidad con archivos SavedModel. Agregada flag para encontrar la libreria CUDDN en el equipo fuera del environment de gerumo.
 
 Agregados y ordenados archivos de configuración para el entrenamiento de al_az y energy.
+
+
+29 septiembre 2026
+
+Gran cambio que cambia a cnn_det para trabajar con varianza y covarianza. Centra el proyecto en propagación de incertidumbre.
+A PARTIR DE ESTA VERSIÓN SOLO CNN_DET FUNCIONAN!
+
+generator.py:
+
+Agregados los ids de los telescopios activados a la metadata.
+
+assembler.py:
+
+Se separaron los outputs de las listas en predict. Ahora habran 5 datos de salida o 6, si hay covarianza, en vez de solo y_predictions. Esto facilita bastante la geometria de los datos de salida.
+Se agregó a load model el modelo de los datos de la penúltima capa. Ahora el assembler puede hacer output directamente estos datos utilizando latent_model[telescope].
+
+cnn_det.py:
+
+Al método model_estimation se le agregó el output de la penúltima capa y los pesos de la última capa en una lista. Se agregó un método evaluate modificado que permite evaluar mediciones con varianza y covarianza, a demás de entregar como energía total de cada tipo de telescopio, telescopios activados. Nueva versión de model_evaluate en cnn_det.py. Pendiente borrado.
+assemble modificado para poder calcular y agregar varianza y covarianza. Se utilizan datos de las redes e intensidad de los telescopios como peso.
+Se agregó exec_model_evaluate a este archivo para poder facilitar el funcionamiento específico de la evaluación de cnn.
+
+
+metrics.py:
+
+Se agregaron los gráficos 3D para altitud y azimut de cnn_det. Este gráfico indica una gaussiana de probabilidad, número de telescopios de cada tipo activados, combinaciones y medidas de tipos de telescopios individuales, mezcla medias y varianzas para crear una predicción promedio e indica cuando hay una medición de un tipo de telescopio sola. En estos casos, estas mediciones no se agregarán al total. Se creó también un gráfico para energía. Solo funciona con un tipo de telescopio a la vez. Debe terminarse.
+
+dataset reader.ipynb:
+
+Cuaderno para leer y agrupar datos del dataset.
+
+uncertainty propagation.ipynb:
+
+cuaderno con pruebas de propagación de incertidumbre.
+
+evaluate.py:
+
+Se agregó capacidad para detectar red CNN_DET y manejar correctamente los outputs de evaluación. En este caso se carga la info de assembler_configuration y no de configuration en el caso de la unidad. Esto es para poder agrupar mejor los datos. Las predicciones se guardan en un mismo archivo en el orden predicción, varianza y covarianza. Al evaluar la unidad, cada evento tiene su propia carpeta donde se guardan las medidas y entradas.

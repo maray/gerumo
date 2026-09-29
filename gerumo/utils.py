@@ -200,11 +200,14 @@ def load_dataset_from_configuration(config_file, include_samples_dataset=False,
         return generator, dataset
      
 
-def load_dataset_from_assembler_configuration(assembler_config_file, include_samples_dataset=False, subset='test'):
+def load_dataset_from_assembler_configuration(assembler_config_file, include_samples_dataset=False, subset='test', telescopes = None):
     # Load configuration
     with open(assembler_config_file) as cfg_file:
         config = json.load(cfg_file)
-    telescopes = {t:m for t,m in config["telescopes"].items() if m is not None}
+    if telescopes == None:
+        telescopes = {t:m for t,m in config["telescopes"].items() if m is not None}
+    else:
+        telescopes = {t:m for t,m in config["telescopes"].items() if m is not None and t in telescopes}
 
     # Prepare datasets
     version = config["version"]

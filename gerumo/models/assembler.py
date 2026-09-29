@@ -20,6 +20,7 @@ class ModelAssembler():
                     targets=[], target_domains={}, target_shapes=(), custom_objects=CUSTOM_OBJECTS):
         #assert not ((sst1m_model_or_path is None) and (mst_model_or_path is None) and (lst_model_or_path is None)), "No models given" 
         self.models = {}
+        self.latent_models = {}
         self.telescopes = []
         self.custom_objects = custom_objects
 
@@ -57,8 +58,15 @@ class ModelAssembler():
         # TODO: duplicate code
         y_predictions = []
         if isinstance(x, list):
+            y_mean = []
+            y_variance = []
+            y_total_observations = []
+            y_total_intensity = []
+            y_telescope_list = []
+            if len(self.targets) == 2:
+                y_covariance = []
             iterator = x if pbar is None else pbar(x)
-            for x_i in iterator:
+            for x_i in iterator:#iterator represents an unique event id. A singular event with multiple obersrvations and telescopes
                 intensity_i_by_telescope = {}
                 y_i_by_telescope = {}
                 for telescope in self.telescopes:
@@ -71,8 +79,27 @@ class ModelAssembler():
                             intensity = np.sum(x_i_telescope[0][:, :, :, 0], axis=(1,2))
                         y_i_by_telescope[telescope] = self.model_estimation(x_i_telescope, telescope, verbose=0, **kwargs)
                         intensity_i_by_telescope[telescope] = intensity
-                y_i_assembled = self.assemble(y_i_by_telescope, weights=intensity_i_by_telescope)
-                y_predictions.append(y_i_assembled)
+                    else:
+                        intensity_i_by_telescope[telescope] = np.array([0])
+                        y_i_by_telescope[telescope] = [np.zeros((1,len(self.targets))),np.zeros((1,64)),self.models[telescope].layers[-1].get_weights()]
+                #y_i_assembled = self.assemble(y_i_by_telescope, weights=intensity_i_by_telescope)
+                if len(self.targets) == 2:
+                    [mean, variance, total_observations, total_intensity, telescope_list, covariance] = self.assemble(y_i_by_telescope, weights=intensity_i_by_telescope)
+                else:
+                    [mean, variance, total_observations, total_intensity, telescope_list] = self.assemble(y_i_by_telescope, weights=intensity_i_by_telescope)
+                #y_predictions.append(y_i_assembled)
+                y_mean.append(mean)
+                y_variance.append(variance)
+                y_total_observations.append(total_observations)
+                y_total_intensity.append(total_intensity)
+                y_telescope_list.append(telescope_list)
+                if len(self.targets) == 2:
+                    y_covariance.append(covariance)
+            if len(self.targets) == 2:
+                return [y_mean, y_variance, y_total_observations,
+                        y_total_intensity, y_telescope_list, y_covariance]
+            return [y_mean, y_variance, y_total_observations,
+                    y_total_intensity, y_telescope_list]
 
         elif isinstance(x, Sequence):
             iterator = x if pbar is None else pbar(x)
@@ -92,7 +119,7 @@ class ModelAssembler():
                             intensity_i_by_telescope[telescope] = intensity
                     y_i_assembled = self.assemble(y_i_by_telescope, weights=intensity_i_by_telescope)
                     y_predictions.append(y_i_assembled)
-        return np.array(y_predictions)
+            return np.array(y_predictions)
 
     def load_model(self, telescope, model_or_path, custom_objects=None, epoch=None):
         if custom_objects is None:
@@ -117,8 +144,16 @@ class ModelAssembler():
                     model_name = f"{experiment_name}_e{epoch}"
                     model_or_path = checkpoints_by_epochs[epoch]
                 self.models[telescope] = load_model(model_or_path, custom_objects=custom_objects) #keras load model
+                self.latent_models[telescope] = Model(
+                        inputs = self.models[telescope].inputs,
+                        outputs = self.models[telescope].layers[-2].output
+                )
             elif isinstance(model_or_path, Model):
                 self.models[telescope] = model_or_path
+                self.latent_models[telescope] = Model(
+                        inputs = self.models[telescope].inputs,
+                        outputs = self.models[telescope].layers[-2].output
+                )
         else:
             return self
             

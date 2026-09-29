@@ -134,14 +134,21 @@ def evaluate_unit(model_or_path, config_file, output_folder,
         custom_objects=CUSTOM_OBJECTS
     )
     # Load Dataset from configuration
-    test_, sample_ = load_dataset_from_configuration(
-        config_file,
-        telescope=telescope,
-        include_samples_dataset=True,
-        sample_events=sample_events
-    )
+    if config["model_constructor"] == "cnn_det_unit":
+        test_, sample_ = load_dataset_from_assembler_configuration(
+            config_file, include_samples_dataset=True, telescopes=[telescope]
+        )
+        (sample_generator, sample_dataset, sample_e) = sample_
+    else:
+        test_, sample_ = load_dataset_from_configuration(
+            config_file,
+            telescope=telescope,
+            include_samples_dataset=True,
+            sample_events=sample_events
+        )
+        (sample_generator, sample_dataset) = sample_
     (test_generator, test_dataset) = test_
-    (sample_generator, sample_dataset) = sample_
+    
     print("Test dataset")
     describe_dataset(test_dataset, save_to=join(output_folder, "test_description.txt"))
     if save_samples:
@@ -155,7 +162,13 @@ def evaluate_unit(model_or_path, config_file, output_folder,
     telescope = telescope or config["telescope"]
     # Evaluate
     # 0. Evaluate with generator
-    results, predictions = assembler.exec_model_evaluate(model, telescope, test_generator, return_predictions=True)
+    model_evaluation = assembler.exec_model_evaluate(model, telescope, test_generator, return_predictions=True)
+    results = model_evaluation[0]
+    predictions = model_evaluation[1]
+    if len(model_evaluation) > 2:
+        variances = model_evaluation[2]
+    if len(model_evaluation) > 5:
+        covariances = model_evaluation[5]
 
     # 1. Save results in csv file: points, targets, energy, event info and telescope info
     if save_results:
@@ -169,8 +182,21 @@ def evaluate_unit(model_or_path, config_file, output_folder,
             prediction_i = row["predictions"]
             prediction = predictions[prediction_i]
             prediction_filepath = join(predictions_subfolder, f"{prediction_i}.npy")
+            if isinstance(prediction, list):
+                prediction = np.array(prediction)
             if isinstance(prediction, np.ndarray):
-                np.save(prediction_filepath, prediction)
+                if len(model_evaluation) < 3:
+                    np.save(prediction_filepath, prediction)
+                elif len(model_evaluation) < 4:
+                    variance = np.asarray(variances[prediction_i])
+                    np.save(prediction_filepath, prediction)
+                    np.save(prediction_filepath, variance)
+                else:
+                    variance = variances[prediction_i]
+                    covariance = covariances[prediction_i]
+                    np.save(prediction_filepath, prediction)
+                    np.save(prediction_filepath, variance)
+                    np.save(prediction_filepath, covariance)
             elif isinstance(prediction, tfp.distributions.MultivariateNormalTriL) :
                 mu = prediction.mean().numpy()
                 cov = prediction.covariance().numpy()
@@ -193,45 +219,96 @@ def evaluate_unit(model_or_path, config_file, output_folder,
             model, telescope, sample_generator, 
             return_inputs=True, return_predictions=True
         )
-        results_samples, inputs_samples, predictions_samples = _samples
+        results_samples = _samples[0]
+        inputs_samples = _samples[1]
+        predictions_samples = _samples[2]
+        if len(_samples) > 3:
+            variances_samples = _samples[3]
+            energies_telescopes_samples = _samples[4]
+            telescopes_names = _samples[5]
+        if len(_samples) > 6:
+            covariances_samples = _samples[6]
 
         for _, row in results_samples.iterrows():
             # event  and telescope info
             event_id = row["event_id"]
-            telescope_id =  row["telescope_id"]
+            
             # input sample
             input_sample = inputs_samples[row["inputs_values"]]
-            input_image_sample, input_features_sample = input_sample
+            
             prediction_sample = predictions_samples[row["predictions"]]
             # prediction sample
             # prediction point sample
-            pred_targets = [f"pred_{target}" for target in config["targets"]]
+            pred_targets = [f"pred_{telescope}_{target}" for telescope in telescopes_names for target in config["targets"]]
             prediction_sample_point = row[pred_targets].to_numpy()
             # Target sample
             true_targets = [f"true_{target}" for target in config["targets"]]
             target_sample = row[true_targets].to_numpy() 
             # Plot input
-            image_filepath = join(
-                samples_subfolder, 
-                f"event_id_{event_id}_telescope_id_{telescope_id}_input.png"
-            )
-            plot_input_sample(
-                input_image_sample, config["input_image_mode"], 
-                input_features_sample, title=(event_id, telescope_id),
-                make_simple=True, save_to=image_filepath
-            )
-            # Plot prediction
-            prediction_filepath = join(
-                samples_subfolder,
-                f"event_id_{event_id}_telescope_id_{telescope_id}_prediction.png"
-            )
-            plot_prediction(
-                prediction_sample, prediction_sample_point, config["targets"],
-                target_mode_config["target_domains"], 
-                target_mode_config["target_resolutions"],
-                (event_id, telescope_id), 
-                target_sample, save_to=prediction_filepath
-            )
+            if config["model_constructor"] == "cnn_det_unit":
+                telescopes_ids = row["activated_telescopes"]
+                input_images_samples, input_features_samples = next(iter(input_sample.values()))
+                variance_sample = variances_samples[row["predictions"]]
+                if len(config["targets"]) == 2:
+                    covariance_sample = covariances_samples[row["predictions"]]
+                else:
+                    covariance_sample = None
+                energy_telescope_sample = energies_telescopes_samples[row["predictions"]]
+                numbre_of_activated_telescopes = row["number_of_observations"]
+                event_filepath = join(samples_subfolder,
+                                      f"event_id_{event_id}")
+                os.makedirs(event_filepath, exist_ok=True)
+                for i, telescope_id in enumerate(telescopes_ids):
+                    image_filepath = join(
+                        event_filepath,
+                        f"telescope_id_{telescope_id}_input.png"
+                    )
+                    input_image_sample = input_images_samples[i]
+                    input_features_sample = input_features_samples[i]
+                    plot_input_sample(
+                        input_image_sample, config["input_image_mode"], 
+                        input_features_sample, title=(event_id, telescope_id),
+                        make_simple=True, save_to=image_filepath
+                    )
+                prediction_filepath = join(
+                    event_filepath, 
+                    f"event_id_{event_id}_prediction.png"
+                )
+                plot_prediction(
+                    prediction_sample, prediction_sample_point, config["targets"],
+                    target_mode_config["target_domains"],
+                    variance=variance_sample, covariance=covariance_sample, intensity=energy_telescope_sample,
+                    target_resolutions=target_mode_config["target_resolutions"],
+                    title=(event_id, numbre_of_activated_telescopes), telescope_names=telescopes_names,
+                    targets_values=target_sample, save_to=prediction_filepath
+                )
+            else:
+                telescope_id =  row["telescope_id"]
+                input_image_sample, input_features_sample = input_sample
+                image_filepath = join(
+                    samples_subfolder, 
+                    f"event_id_{event_id}_telescope_id_{telescope_id}_input.png"
+                )
+                # Plot prediction
+                prediction_filepath = join(
+                    samples_subfolder,
+                    f"event_id_{event_id}_telescope_id_{telescope_id}_prediction.png"
+                )
+                plot_input_sample(
+                    input_image_sample, config["input_image_mode"], 
+                    input_features_sample, title=(event_id, telescope_id),
+                    make_simple=True, save_to=image_filepath
+                )
+                plot_prediction(
+                    prediction_sample, prediction_sample_point, config["targets"],
+                    target_mode_config["target_domains"], 
+                    target_mode_config["target_resolutions"],
+                    (event_id, telescope_id), 
+                    target_sample, save_to=prediction_filepath
+                )
+
+    for t in config["targets"]:
+        results[f"pred_{t}"] = results[f"pred_{telescope}_{t}"]
 
     ## 3. Calculate regression
     print("Regression plots")
@@ -349,7 +426,13 @@ def evaluate_assembler(assembler_config_file, output_folder=None,
             else:    
                 all_results[telescope] = unit_evaluation
     # Assembler evaluation
-    results, predictions = assembler.evaluate(test_generator, return_predictions=True)
+    assembler_evaluation = assembler.evaluate(test_generator, return_predictions=True)
+    results = assembler_evaluation[0]
+    predictions = assembler_evaluation[1]
+    if len(assembler_evaluation) > 2:
+        variances = assembler_evaluation[2]
+        if len(assembler_evaluation) > 5:
+            covariances = assembler_evaluation[5]
 
     # 1. Save results in csv file: points, targets, energy, event info and telescope info
     if save_results:
@@ -363,8 +446,21 @@ def evaluate_assembler(assembler_config_file, output_folder=None,
             prediction_i = row["predictions"]
             prediction = predictions[prediction_i]
             prediction_filepath = join(predictions_subfolder, f"{prediction_i}.npy")
+            if isinstance(prediction, list):
+                prediction = np.array(prediction)
             if isinstance(prediction, np.ndarray):
-                np.save(prediction_filepath, prediction)
+                if len(assembler_evaluation) < 3:
+                    np.save(prediction_filepath, prediction)
+                elif len(assembler_evaluation) < 4:
+                    variance = np.asarray(variances[prediction_i])
+                    np.save(prediction_filepath, prediction)
+                    np.save(prediction_filepath, variance)
+                else:
+                    variance = variances[prediction_i]
+                    covariance = covariances[prediction_i]
+                    np.save(prediction_filepath, prediction)
+                    np.save(prediction_filepath, variance)
+                    np.save(prediction_filepath, covariance)
             elif isinstance(prediction, tfp.distributions.MultivariateNormalTriL) :
                 mu = prediction.mean().numpy()
                 cov = prediction.covariance().numpy()
@@ -382,34 +478,74 @@ def evaluate_assembler(assembler_config_file, output_folder=None,
         samples_subfolder = join(output_folder, 'samples')
         print("Saving samples in:", samples_subfolder)
         os.makedirs(samples_subfolder, exist_ok=True)
-        results_samples, predictions_samples = assembler.evaluate(
+        _samples = assembler.evaluate(
             sample_generator, return_predictions=True
         )
+        results_samples = _samples[0]
+        predictions_samples = _samples[1]
+        if len(_samples) > 2:
+            variances_samples = _samples[2]
+            energys_telescopes_samples = _samples[3]
+            telescope_names = _samples[4]
+        if len(_samples) > 5:
+            covariances_samples = _samples[5]
         for _, row in results_samples.iterrows():
             # event  and telescope info
             event_id = row["event_id"]
+            numbre_of_activated_telescopes = row["number_of_observations"]
             # prediction sample
             prediction_sample = predictions_samples[row["predictions"]]
             # prediction point sample
-            pred_targets = [f"pred_{target}" for target in config["targets"]]
+            pred_targets = [f"pred_{telescope}_{target}" for telescope in telescope_names for target in config["targets"]]
             prediction_sample_point = row[pred_targets].to_numpy()
             # Target sample
             true_targets = [f"true_{target}" for target in config["targets"]]
-            target_sample = row[true_targets].to_numpy() 
-
+            target_sample = row[true_targets].to_numpy()
+            #variance sample
+            variance_sample = variances_samples[row["predictions"]]
+            #covariance sample
+            if len(_samples) > 4:
+                covariance_sample = covariances_samples[row["predictions"]]
+            else:
+                covariance_sample = None
+            #energy of telescope
+            energy_telescope_sample = energys_telescopes_samples[row["predictions"]]
             # Plot prediction
             prediction_filepath = join(
                 samples_subfolder, f"event_id_{event_id}_prediction.png"
             )
-            plot_prediction(
-                prediction_sample, prediction_sample_point, config["targets"],
-                target_mode_config["target_domains"], 
-                target_mode_config["target_resolutions"], 
-                event_id, target_sample, save_to=prediction_filepath
-            )
+            if len(_samples) > 2:
+                plot_prediction(
+                    prediction_sample, prediction_sample_point, config["targets"],
+                    target_mode_config["target_domains"],
+                    variance = variance_sample, covariance = covariance_sample, intensity = energy_telescope_sample,
+                    target_resolutions = target_mode_config["target_resolutions"],
+                    title = (event_id, numbre_of_activated_telescopes), telescope_names = telescope_names,
+                    targets_values = target_sample, save_to=prediction_filepath
+                )
+            else:
+                plot_prediction(
+                    prediction_sample, prediction_sample_point, config["targets"],
+                    target_mode_config["target_domains"], 
+                    target_resolutions = target_mode_config["target_resolutions"], 
+                    title = event_id, targets_values = target_sample, save_to=prediction_filepath
+                )
 
     ## 3. Calculate regression
     print("Regression plots")
+    if len(config["targets"]) == 2 and config["model_constructor"] == 'cnn_det_unit':
+        for i in config["targets"]:
+            results_prediction = None
+            intensity = assembler_evaluation[3]
+            for index, j in enumerate(list(config["telescopes"].keys())):
+                if results_prediction is None:
+                    results_prediction = results[f"pred_{j}_{i}"]*intensity[:,index]
+                    total_intensity = intensity[:,index]
+                else:
+                    results_prediction += results_prediction + results[f"pred_{j}_{i}"]*intensity[:,index]
+                    total_intensity += intensity[:,index]
+            results[f"pred_{i}"] = results_prediction / total_intensity
+
     scores = r2_score(
         results[[f"true_{target}" for target in config["targets"]]], 
         results[[f"pred_{target}" for target in config["targets"]]], 
