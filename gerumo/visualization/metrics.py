@@ -154,10 +154,10 @@ def plot_prediction(prediction, prediction_point, targets, target_domains, varia
     """
 
     # Create new Figure
-    if variance is None:
+    if covariance is None:
         plt.figure(figsize=(8,8))
         ax = plt.gca()
-    elif len(target_domains) == 2:
+    elif len(targets) == 2:
         fig = plt.figure(figsize=(8,8))
         ax = fig.add_subplot(projection='3d')
     else:
@@ -338,37 +338,81 @@ def plot_multi_stereo_prediction(event_index,
 Standard deviation predictions
 """
 def show_gaussian_prediction_1d(prediction, prediction_point, variance, intensity, num_activated_telescopes, targets, target_domains, telescope_names, targets_values=None, axis=None):
+    #prediction_point [LST_mean, MST_mean]
+    #variance [array([LST]), array([MST])]
+    #intensity array([LST, MST])
+    #num_activated_telescopes [LST, MST]
+    #targets ['log10_mc_energy']
+    #target_domains [target_min, target_max]
+    #telescope_names ['LST_LSTCam', 'MST_NectarCam']
+    #targets_values array([target])
     if axis is None:
         plt.figure(figsize=(8,8))
         axis = plt.gca()
     if isinstance(target_domains, dict):
         target_domains = [[target_domains[t][0],target_domains[t][1]] for t in targets]
     
-    if variance == 0:
-        x1=np.linspace(target_domains[0][0], prediction_point[0], 501)
-        x2=np.linspace(prediction_point[0], target_domains[0][1], 500)[1:]
-        y1=np.zeros_like(x1)
-        y1[-1] = 1
-        y2=np.zeros_like(x2) 
-        y = np.hstack((y1, y2))
-        x = np.hstack((x1,x2))
+    pred_plot_x = np.linspace(target_domains[0][0],target_domains[0][1],1000)
+    
+    colors = cm.tab20(np.linspace(0,1,20))#10 sets of colors to choose, 4 is reserved for results, 1 for average prediction
+    color_select = 2
+    
+    n_telescopes = len(telescope_names)
+    valid_telescopes = []
+    single_measure_telescopes = []
+    
+    for i in range(n_telescopes):
+        if intensity[i] <= 0:
+            continue
+    
+        if variance[i] <= 0:
+            single_measure_telescopes.append(i)
+            continue
+        valid_telescopes.append(i)
+    
+    mean = 0
+    valid_intensity = 0
+    total_variance = 0
+    
+    if len(valid_telescopes) != 0:
+        for i in valid_telescopes:
+            mean += prediction_point[i]*intensity[i]
+            valid_intensity += intensity[i]
+            total_variance += variance[i]*intensity[i]**2
+        mean /= valid_intensity
+        total_variance /= valid_intensity**2
+    
+        pred_plot_mean = norm.pdf(pred_plot_x, loc = mean, scale = np.sqrt(total_variance))
+        axis.plot(pred_plot_x,pred_plot_mean, color = colors[7])
+    
     else:
-        x = np.linspace(target_domains[0][0],target_domains[0][1],1000)
-        y = norm.pdf(x, loc = prediction_point, scale = np.sqrt(variance[0]))#solucion temporal para varianza. actualizar para multiples telescopios
-    axis.plot(x, y, "-",color="blue", alpha=0.9)
-
-    # Add predicted point
-    axis.axvline(x=prediction_point, c="white", linestyle="--", linewidth=3,
-                 label=f"prediction=({prediction_point[0]:.4f})", alpha=0.9)
-    # Add target point
+        for i in single_measure_telescopes:
+            mean += prediction_point[i]*intensity[i]
+            valid_intensity += intensity[i]
+        mean /= valid_intensity
+    axis.axvline(x=mean, c=colors[6], linestyle="--", linewidth=3,
+                label="Combined Prediction", alpha=0.9)
+    np.delete(colors,[6,7])
+    
+    for i in valid_telescopes:
+        pred_plot_telescope = norm.pdf(pred_plot_x, loc = prediction_point[i], scale = np.sqrt(variance[i]))
+        axis.plot(pred_plot_x,pred_plot_telescope, color = colors[color_select + 1])
+        axis.axvline(x=prediction_point[i], c=colors[color_select], linestyle="--", linewidth=2,
+                    label=f"{telescope_names[i]} {num_activated_telescopes[i]} activated", alpha=0.9)
+        color_select += 2
+    
+    for i in single_measure_telescopes:
+        axis.axvline(x=prediction_point[i], c=colors[color_select + 1], linestyle="--", linewidth=2,
+                    label=f"{telescope_names[i]} {num_activated_telescopes[i]} activated", alpha=0.9)
+        color_select += 2
+    
     if targets_values is not None:
-      axis.axvline(x=targets_values[0], linestyle="--", c="black", linewidth=3,
-                   label=f"target=({targets_values[0]:.4f})", alpha=0.9)
-
-    # Style
-    axis.set_facecolor('lightgrey')
-    axis.set_xlim(target_domains[0])
-    axis.set_xlabel(_label_formater(targets[0]))
+        axis.axvline(x=targets_values, c=colors[0], linestyle="--", linewidth=3,
+                    label=f"Ground Truth", alpha=0.9)
+    
+    axis.set_xlabel(targets[0])
+    axis.set_ylabel("Probability Density")
+        
     axis.legend()
     return axis
 

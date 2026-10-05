@@ -185,17 +185,12 @@ def evaluate_unit(model_or_path, config_file, output_folder,
             if isinstance(prediction, list):
                 prediction = np.array(prediction)
             if isinstance(prediction, np.ndarray):
-                if len(model_evaluation) < 3:
-                    np.save(prediction_filepath, prediction)
-                elif len(model_evaluation) < 4:
+                np.save(prediction_filepath, prediction)
+                if len(model_evaluation) > 4:
                     variance = np.asarray(variances[prediction_i])
-                    np.save(prediction_filepath, prediction)
                     np.save(prediction_filepath, variance)
-                else:
-                    variance = variances[prediction_i]
-                    covariance = covariances[prediction_i]
-                    np.save(prediction_filepath, prediction)
-                    np.save(prediction_filepath, variance)
+                if len(model_evaluation) > 5:
+                    covariance = np.asarray(covariances[prediction_i])
                     np.save(prediction_filepath, covariance)
             elif isinstance(prediction, tfp.distributions.MultivariateNormalTriL) :
                 mu = prediction.mean().numpy()
@@ -429,7 +424,7 @@ def evaluate_assembler(assembler_config_file, output_folder=None,
     assembler_evaluation = assembler.evaluate(test_generator, return_predictions=True)
     results = assembler_evaluation[0]
     predictions = assembler_evaluation[1]
-    if len(assembler_evaluation) > 2:
+    if len(assembler_evaluation) > 4:
         variances = assembler_evaluation[2]
         if len(assembler_evaluation) > 5:
             covariances = assembler_evaluation[5]
@@ -449,17 +444,12 @@ def evaluate_assembler(assembler_config_file, output_folder=None,
             if isinstance(prediction, list):
                 prediction = np.array(prediction)
             if isinstance(prediction, np.ndarray):
-                if len(assembler_evaluation) < 3:
-                    np.save(prediction_filepath, prediction)
-                elif len(assembler_evaluation) < 4:
+                np.save(prediction_filepath, prediction)
+                if len(assembler_evaluation) > 4:
                     variance = np.asarray(variances[prediction_i])
-                    np.save(prediction_filepath, prediction)
                     np.save(prediction_filepath, variance)
-                else:
-                    variance = variances[prediction_i]
-                    covariance = covariances[prediction_i]
-                    np.save(prediction_filepath, prediction)
-                    np.save(prediction_filepath, variance)
+                if len(assembler_evaluation) > 5:
+                    covariance = np.asarray(covariances[prediction_i])
                     np.save(prediction_filepath, covariance)
             elif isinstance(prediction, tfp.distributions.MultivariateNormalTriL) :
                 mu = prediction.mean().numpy()
@@ -504,7 +494,7 @@ def evaluate_assembler(assembler_config_file, output_folder=None,
             #variance sample
             variance_sample = variances_samples[row["predictions"]]
             #covariance sample
-            if len(_samples) > 4:
+            if len(_samples) > 5:
                 covariance_sample = covariances_samples[row["predictions"]]
             else:
                 covariance_sample = None
@@ -533,16 +523,18 @@ def evaluate_assembler(assembler_config_file, output_folder=None,
 
     ## 3. Calculate regression
     print("Regression plots")
-    if len(config["targets"]) == 2 and config["model_constructor"] == 'cnn_det_unit':
+    if config["model_constructor"] == 'cnn_det_unit':
+        intensity = assembler_evaluation[3]
         for i in config["targets"]:
             results_prediction = None
-            intensity = assembler_evaluation[3]
-            for index, j in enumerate(list(config["telescopes"].keys())):
+            total_intensity = None
+            for index, j in enumerate(assembler.telescopes):
+                weighted_prediction = (results[f"pred_{j}_{i}"] * intensity[:, index])
                 if results_prediction is None:
-                    results_prediction = results[f"pred_{j}_{i}"]*intensity[:,index]
-                    total_intensity = intensity[:,index]
+                    results_prediction = weighted_prediction
+                    total_intensity = intensity[:,index].copy()
                 else:
-                    results_prediction += results_prediction + results[f"pred_{j}_{i}"]*intensity[:,index]
+                    results_prediction += weighted_prediction
                     total_intensity += intensity[:,index]
             results[f"pred_{i}"] = results_prediction / total_intensity
 
