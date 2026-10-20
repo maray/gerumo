@@ -22,7 +22,7 @@
             "cwd": "${workspaceFolder}/train",
             "args": [
                 "--assembler",
-                "./output/Training gamma-diffuse/CNN-DET/alt_az/cnn_assembler_full_diffusion_test_az_alt.json",
+                "./output/Training gamma-diffuse/CNN-DET/log10_energy/cnn_assembler_full_diffusion_energy_test.json",
                 "--all",
                 "--samples",
                 "--predictions",
@@ -65,6 +65,20 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}"
+        },
+        {
+            "name": "Evaluate Error Comparisson Experiment",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "test_variance_ponderation.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/tests",
+            "args": [
+                "--assembler",
+                "./config tests comparison error/cnn_assembler_full_diffusion_test_alt_az.json",
+                "--output",
+                "./"
+            ]
         }
     ]
 }

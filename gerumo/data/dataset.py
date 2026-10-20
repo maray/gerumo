@@ -592,13 +592,26 @@ def filter_dataset(dataset, version, telescopes=[], number_of_observations=[], d
     # filter telescopes
     filtered_dataset = dataset[dataset.type.isin(telescopes)]
     # # filter number of observatoins
-    # FIXME: 
-    # for telescope, observations in zip(telescopes, number_of_observations):
-    #     filtered_events = filtered_dataset[filtered_dataset.type == telescope]\
-    #                         .groupby("event_unique_id")\
-    #                         .filter(lambda g: len(g) >= observations)\
-    #                         .event_unique_id.unique()
-    #     filtered_dataset = filtered_dataset[filtered_dataset.event_unique_id.isin(filtered_events)]
+    counts = (
+        filtered_dataset
+        .groupby(["event_unique_id", "type"])
+        .size()
+        .unstack(fill_value=0)
+    )
+    requirements = dict(
+        zip(telescopes, number_of_observations)
+    )
+    valid_events = counts.reindex(
+        columns=telescopes,
+        fill_value=0
+    ).ge(
+        requirements
+    ).all(axis=1)
+    filtered_dataset = filtered_dataset[
+        filtered_dataset["event_unique_id"].isin(
+            valid_events[valid_events].index
+        )
+    ]
     # filter domain
     selection = np.ones((len(filtered_dataset),), dtype=bool)
     for target, (vmin, vmax) in domain.items():

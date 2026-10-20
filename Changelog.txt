@@ -173,3 +173,12 @@ cuaderno con pruebas de propagación de incertidumbre.
 evaluate.py:
 
 Se agregó capacidad para detectar red CNN_DET y manejar correctamente los outputs de evaluación. En este caso se carga la info de assembler_configuration y no de configuration en el caso de la unidad. Esto es para poder agrupar mejor los datos. Las predicciones se guardan en un mismo archivo en el orden predicción, varianza y covarianza. Al evaluar la unidad, cada evento tiene su propia carpeta donde se guardan las medidas y entradas.
+
+20 octubre 2026
+
+dataset.py:
+Agregada función para filtrar por número de observaciones por telescopio.
+
+test_variance_ponderation.py
+
+Programa nuevo para comparar estrategia de assembler y generar gráficos.
