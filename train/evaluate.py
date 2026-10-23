@@ -524,19 +524,27 @@ def evaluate_assembler(assembler_config_file, output_folder=None,
     ## 3. Calculate regression
     print("Regression plots")
     if config["model_constructor"] == 'cnn_det_unit':
-        intensity = assembler_evaluation[3]
-        for i in config["targets"]:
+        variances = np.asarray(variances)
+        number_of_activated_telescopes = results["number_of_observations"].to_numpy()
+        number_of_activated_telescopes = np.array([np.array(x_i) for x_i in number_of_activated_telescopes])
+#        intensity = assembler_evaluation[3]
+        for t_index, i in enumerate(config["targets"]):
             results_prediction = None
-            total_intensity = None
+#            total_intensity = None
+            total_inverse_variance = None
             for index, j in enumerate(assembler.telescopes):
-                weighted_prediction = (results[f"pred_{j}_{i}"] * intensity[:, index])
+                #weighted_prediction = (results[f"pred_{j}_{i}"] * intensity[:, index])
+                weighted_prediction = (results[f"pred_{j}_{i}"] * number_of_activated_telescopes[:,index]  / variances[:,index,t_index])
                 if results_prediction is None:
                     results_prediction = weighted_prediction
-                    total_intensity = intensity[:,index].copy()
+#                    total_intensity = intensity[:,index].copy()
+                    total_inverse_variance = number_of_activated_telescopes[:,index] /variances[:,index,t_index].copy()
                 else:
                     results_prediction += weighted_prediction
-                    total_intensity += intensity[:,index]
-            results[f"pred_{i}"] = results_prediction / total_intensity
+#                    total_intensity += intensity[:,index]
+                    total_inverse_variance += number_of_activated_telescopes[:,index] /variances[:,index,t_index]
+#            results[f"pred_{i}"] = results_prediction / total_intensity
+            results[f"pred_{i}"] = results_prediction / total_inverse_variance
 
     scores = r2_score(
         results[[f"true_{target}" for target in config["targets"]]], 

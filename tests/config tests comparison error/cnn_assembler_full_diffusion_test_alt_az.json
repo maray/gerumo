@@ -1,0 +1,49 @@
+{
+    "model_name": "CNN Assembler Test Alt Az",
+    "assembler_constructor": "cnn_det",
+    "model_constructor": "cnn_det_unit",
+    "assembler_mode": "intensity_weighting",
+    "telescopes" : {
+        "LST_LSTCam": "../train/output/Training gamma-diffuse/CNN-DET/alt_az/CNN_DET_UNIT_LST_LSTCam_DL1_V1_20260507_141351_8a6",
+        "MST_NectarCam": "../train/output/Training gamma-diffuse/CNN-DET/alt_az/CNN_DET_UNIT_MST_NectarCam_DL1_V1_20260508_020704_568"
+    },
+    "output_folder" : "./",
+    
+    "version" : "DL1",
+    "test_events_csv"    : "../dataset/first gamma-diffuse only/validation_events.csv",
+    "test_telescope_csv" : "../dataset/first gamma-diffuse only/validation_telescopes.csv",
+    "replace_folder_test" : null,
+    
+    "input_image_mode" : "simple-shift",
+    "input_image_mask" : true,
+    "min_observations" : [2,2],
+    "input_features" : ["x", "y"],
+    
+    "targets" : ["alt", "az"],
+    "target_mode" : "lineal",
+    "target_shapes" : null,
+    "target_domains" : {
+        "alt": [1.15, 1.3], 
+        "az": [-0.25, 0.25], 
+        "log10_mc_energy": [-2.351, 2.47]
+    },
+    "target_sigmas" : null,
+    
+    "preprocessing": {
+        "MultiCameraPipe" : {
+            "MST_NectarCam": {
+                "charge_scaler_value" : 62.652400970459,
+                "peak_scaler_path" : "DL1_MST_NectarCam_peak_scaler",
+                "tailcuts_clean_params": {"boundary_thresh": 6, "picture_thresh": 14}
+            },
+            "LST_LSTCam": {
+                "charge_scaler_value" : 36.852122955322265,
+                "peak_scaler_path" : "DL1_LST_LSTCam_peak_scaler",
+                "tailcuts_clean_params": {"boundary_thresh": 2, "picture_thresh": 5}
+            }
+        },
+        "TelescopeFeaturesPipe": {
+            "array_scaler_path": "DL1_array-scaler"
+        }
+    }
+}

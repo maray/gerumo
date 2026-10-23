@@ -172,6 +172,17 @@ class CNN_DET(ModelAssembler):
         latent_prediction = latent_model.predict(x_i_telescope,verbose=verbose, **kwargs)
         return [model_telescope.predict(x_i_telescope, verbose=verbose, **kwargs), latent_prediction, last_layer_weights]
 
+    def exec_model_estimation(self, x_i_telescope, model, verbose=0, **kwargs):
+        self.models["dummy"] = model
+        self.latent_models["dummy"] = Model(
+                inputs = self.models["dummy"].inputs,
+                outputs = self.models["dummy"].layers[-2].output
+        )
+        prediction = self.model_estimation(x_i_telescope, "dummy",  verbose, **kwargs)
+        del self.models["dummy"]
+        del self.latent_models["dummy"]
+        return prediction[0]
+
     def point_estimation(self, y_predictions):
         """
         Predict points for a batch of predictions `y_predictions` using `self.point_estimation_mode` method.

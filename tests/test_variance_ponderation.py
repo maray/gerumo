@@ -91,15 +91,15 @@ if __name__ == "__main__":
         error_variance.append(np.abs(results_variance[f"prediction_{target}"] - results[f"true_{target}"]))
         error_average.append(np.abs(results_average[f"prediction_{target}"] - results[f"true_{target}"]))
 
-    average_error_intensity = []
-    average_error_variance = []
-    average_error_average = []
+    MSE_intensity = []
+    MSE_variance = []
+    MSE_average = []
 
     for i, target in enumerate(config["targets"]):
 
-        average_error_intensity.append(sum(error_intensity[i])/len(error_intensity[i]))
-        average_error_variance.append(sum(error_variance[i])/len(error_variance[i]))
-        average_error_average.append(sum(error_average[i])/len(error_average[i]))
+        MSE_intensity.append(sum(error_intensity[i]**2)/len(error_intensity[i]))
+        MSE_variance.append(sum(error_variance[i]**2)/len(error_variance[i]))
+        MSE_average.append(sum(error_average[i]**2)/len(error_average[i]))
 
 
     n_targets = len(config["targets"])
@@ -137,24 +137,24 @@ if __name__ == "__main__":
     width = 0.2
     x = np.arange(n_targets)
     fig, axs = plt.subplots(layout="constrained")
-    axs.set_title(f"Average Error for {name}")
-    axs.bar(x - width, average_error_average, width)
-    axs.bar(x, average_error_intensity, width)
-    axs.bar(x + width, average_error_variance, width)
+    axs.set_title(f"Mean Square Error for {name}")
+    axs.bar(x - width, MSE_average, width)
+    axs.bar(x, MSE_intensity, width)
+    axs.bar(x + width, MSE_variance, width)
 
-    axs.set_ylabel("Average error.")
+    axs.set_ylabel("Mean square error")
     axs.set_xticks(x,config["targets"])
     axs.set_xlabel("Targets")
-    axs.legend(["Error average", "Error intensity", "Error variance"])
-    plt.savefig(join(output_folder, f"average error comparisson {name}.png"))
+    axs.legend(["MSE average", "MSE intensity", "MSE variance"])
+    plt.savefig(join(output_folder, f"MSE comparisson {name}.png"))
     plt.close()
 
-    fig, axs = plt.subplots(n_targets, 3, figsize=(24, n_targets*8.5))
+    fig, axs = plt.subplots(3, n_targets, figsize=(n_targets*8.5, 24))
     plt.suptitle(f"Predicted values coparison for each assembly method for {name}")
 
     for i, target in enumerate(config["targets"]):
         if n_targets > 1:
-            target_sub = axs[i]
+            target_sub = axs[:,i]
         else:
             target_sub = axs
 
@@ -167,21 +167,21 @@ if __name__ == "__main__":
         sub.plot([min_val, max_val], [min_val, max_val], "--")
         sub.set_xlabel(f"True {target} values")
         sub.set_ylabel(f"Predicted average assembly {target} values")
-        sub.set_title("Predicted Values Averaged v/s True Targets")
+        sub.set_title("Predicted Values Averaged v/s True Targets with MSE {:.4e} MSE".format(MSE_average[i]))
 
         sub = target_sub[1]
         sub.scatter(true_targets, results_intensity[f"prediction_{target}"])
         sub.plot([min_val, max_val], [min_val, max_val], "--")
         sub.set_xlabel(f"True {target} values")
         sub.set_ylabel(f"Predicted intensity assembly {target} values")
-        sub.set_title("Predicted Values Weighted by Intensity v/s True Targets")
+        sub.set_title("Predicted Values Weighted by Intensity v/s True Targets with {:.4e} MSE".format(MSE_intensity[i]))
 
         sub = target_sub[2]
         sub.scatter(true_targets, results_variance[f"prediction_{target}"])
         sub.plot([min_val, max_val], [min_val, max_val], "--")
         sub.set_xlabel(f"True {target} values")
         sub.set_ylabel(f"Predicted intensity assembly {target} values")
-        sub.set_title("Predicted Values Weighted by Variance v/s True Targets")
+        sub.set_title("Predicted Values Weighted by Variance v/s True Targets with {:.4e} MSE".format(MSE_variance[i]))
 
     plt.savefig(join(output_folder, f"predicted values comparisson {name}.png"))
     plt.close()

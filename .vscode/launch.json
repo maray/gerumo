@@ -10,7 +10,7 @@
             "cwd": "${workspaceFolder}/train",
             "args": [
                 "--config",
-                "./config/local/alt_az/umonna_sst.json"
+                "./config/local/log10_energy/CNN_LST.json"
             ]
         },
         {
@@ -22,8 +22,7 @@
             "cwd": "${workspaceFolder}/train",
             "args": [
                 "--assembler",
-                "./output/Training gamma-diffuse/CNN-DET/log10_energy/cnn_assembler_full_diffusion_energy_test.json",
-                "--all",
+                "./output/Training gamma-diffuse/CNN-DET/alt_az/cnn_assembler_full_diffusion_test_az_alt.json",
                 "--samples",
                 "--predictions",
                 "--results"
@@ -77,7 +76,7 @@
                 "--assembler",
                 "./config tests comparison error/cnn_assembler_full_diffusion_test_alt_az.json",
                 "--output",
-                "./"
+                "./graficos"
             ]
         }
     ]

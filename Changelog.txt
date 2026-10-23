@@ -182,3 +182,29 @@ Agregada función para filtrar por número de observaciones por telescopio.
 test_variance_ponderation.py
 
 Programa nuevo para comparar estrategia de assembler y generar gráficos.
+
+23 octubre 2026
+
+utils.py:
+Solucionado un bug en que se seleccionaban los eventos sample antes de filtrar, lo cual generaba un número de eventos inconsistente. Aumentado el número de eventos sample a 8.
+
+cnn_det.py:
+Se agregó un exec_model_estimation del assembler a esta función que incluye el modelo latente.
+
+metrics.py:
+Cambiado método de ponderación de energía a varianza inversa.
+show_gaussian_prediction_2d:
+	Gráfico de altitud y azimut cambiado a curvas de nivel de 2d.
+	Eliminado habilidad de mostrar telescopios con menos de 2 muestras
+	Ponderación cambiada a varianza inversa.
+	agregada regularización de matriz de covarianza.
+	Agregadas unidades a las etiquetas de ejes.
+
+test_variance_ponderation.py:
+Cambiada métrica de error medio por MSE.
+Se agregaron las medidas de MSE al gráfico de predicción vs ground truth.
+
+evaluate.py:
+Se agregó la ponderación por varianza a los resultados de regresión y reconstrucción del assembler.
+
+Se desactivo el guardado de predicciones y regreciones en el entrenamiento. Deben repararse por los cambios al assembler.

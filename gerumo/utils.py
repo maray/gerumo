@@ -231,6 +231,7 @@ def load_dataset_from_assembler_configuration(assembler_config_file, include_sam
     ## Load Data
     dataset = load_dataset(events_csv, telescope_csv, replace_folder_)
     dataset = aggregate_dataset(dataset, az=True, log10_mc_energy=True)
+    dataset = filter_dataset(dataset, version, telescopes.keys(), min_observations, target_domains)
     if include_samples_dataset:
         # events with observations of every type of telescopes
         sample_telescopes = [TELESCOPES_ALIAS[version][t] for t in telescopes.keys()]
@@ -238,16 +239,14 @@ def load_dataset_from_assembler_configuration(assembler_config_file, include_sam
         sample_events = [e for e, df in dataset.groupby("event_unique_id") if __same_telescopes(df["type"].unique(), sample_telescopes)]
         # TODO: add custom seed
         r = np.random.RandomState(42)
-        sample_events = r.choice(sample_events, size=5, replace=False)
+        sample_events = r.choice(sample_events, size=8, replace=False)
         sample_dataset = dataset[dataset["event_unique_id"].isin(sample_events)]
-        sample_dataset = filter_dataset(sample_dataset, version, telescopes.keys(), min_observations, target_domains)
         if len(sample_dataset) == 0: raise ValueError("Sample dataset is empty.")
     else:
         sample_events = None
         sample_dataset = None
         sample_generator = None
 
-    dataset = filter_dataset(dataset, version, telescopes.keys(), min_observations, target_domains)
     
     # Evaluate assembler
     ## Preprocessing
